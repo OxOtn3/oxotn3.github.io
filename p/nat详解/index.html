@@ -1,0 +1,715 @@
+<!DOCTYPE html>
+<html lang="en-us" dir="ltr">
+    <head><meta charset='utf-8'>
+<meta name='viewport' content='width=device-width, initial-scale=1'><meta name='description' content='前言 还记得一个月前被面试官问到NAT的时候完全茫然，面试结束复盘的时候发现自己一直在用的内网穿透APP就是基于NAT的。平时还是得多问问为什么。
+ 在介绍NAT之前，首先需要简单介绍一下防火墙。
+防火墙 防火墙简介 防火墙的任务是控制互联网中网络流量的流向，本质上是一种能够限制转发流量类型的路由器。（代理防火墙严格意义上不算是）
+常见的防火墙主要有两种：
+ 包过滤防火墙（packet-filter firewall） 代理防火墙（proxy firewall）  包过滤防火墙是一个互联网路由器，能够根据条件对数据包进行丢弃/传输的操作。而代理防火墙是一个服务器主机，它作为TCP和UDP传输的一个端点，通常不会在IP协议层中路由IP数据包。
+二者的主要区别是所操作的协议栈的层次不同。
+包过滤防火墙 过滤器选项包括：IP地址、ICMP报文类型、数据包中的端口号等。
+包过滤防火墙可分为无状态的和有状态的。无状态的包过滤防火墙单独处理每一个数据包；而有状态的防火墙能够通过关联已经或者即将到达的数据包来推断数据信息。（举个例子，对于分片的IP报文，有状态的防火墙往往能够判断出其属于同一个IP数据报，但无状态的无法做到）
+代理防火墙 代理防火墙的本质是运行一个或多个应用层网关的主机。
+一般来说，防火墙内的客户端通常会进行特殊配制，从而能够连接到代理防火墙，而不是连接到真正提供服务的主机。所以说这种防火墙配置繁琐（必须为每个传输层服务设置一个代理，通过这个代理和新的服务器发起连接）。但也正因如此，代理防火墙是非常安全的。
+我的理解中，这是一种用配置的繁琐换安全性的trade-off。
+常见的代理防火墙的形式有：
+ HTTP代理防火墙  也称为Web代理，只能用于HTTP和HTTPS协议。这种代理对于内网用户来说相当于Web服务器，对于被访问的外部网站来说相当于Web客户端。
+此外，这种代理往往还提供其他的一些功能：
+ Web缓存功能。对网页内容进行缓存，从而减少网页延迟，提高用户访问体验。（例如HTTP缓存） 作为内容过滤器，基于黑名单屏蔽特定用户。 隧道代理服务器，功能和2相反。   SOCKS代理防火墙  相比于HTTP代理，范围更广，可以用于Web以外的其他服务。
+ NAT网络地址转换 基本概念 书上关于NAT的基本概念这一块个人认为解释的非常清楚，直接拿来：
+ NAT(Network Address Translation)本质上是一种允许在互联网不同地方重复使用相同的IP地址集的机制。建立NAT的主要动机是正在急剧减少的有限IP地址空间。使用NAT最常见的情况是，唯一与Internet连接的站点仅被分配了很少的几个IP地址（甚至只有一个IP地址），但是内部却有多台主机需要同时上网。当所有进出的流量均通过一个单独的NAT设备时，该设备将内部系统的地址空间和全球互联网地址空间分割开，因此所有的内部系统可以使用本地分配的私有IP地址访问互联网。
+ NAT的工作原理是重写通过路由器数据包的识别信息，并且大多数的NAT同时进行地址转换和包过滤。
+引入NAT其实一开始主要为了解决两个问题：
+ IP地址不够用 路由可扩展性不强  其中，CIDR的发展比较好的解决了后一个问题。（书上是这么描述的，但我觉得这两个问题归根结底是一个问题。可能书上想表达的意思是，路由可扩展性不强，是由于5种IP地址种类已经定死了，无法再修改，而CIDR解决了这个问题；而IP地址不够用，是因为在IP地址定死了，不可变，我们不去考虑IP地址分类的前提条件下，一个IP只能对应一个地址，不能被复用）
+NAT也一定程度上缓解了前一个问题。但是NAT毕竟只是权宜之计，真正解决第一个问题还是得用IPv6，但是又因为NAT发展的太好了，使用的人太多了，反而拖延了IPv6的推进。
+对于NAT，也有很多其他的缺点，例如：
+ 如果想要让NAT内部的主机能够被访问，必须进行特殊配置，因为互联网上的用户无法直接访问私有地址的主机 为了让NAT正常工作，每一个属于同一个连接或者关联的双向数据包都必须通过相同的NAT，因为NAT必须重写每个数据包的寻址信息，从而双方正常通信。  传统NAT：基本NAT和NAPT 传统的基本的NAT只执行对IP地址的重写，实际上这种NAT没什么用，因为需要的还是相同数量的IP地址。一个更好的做法是NAPT，NAPT使用传输层标识符（也就是TCP和UDP的端口）来确定一个特定的数据包到底和NAT内部的哪台私有主机关联。这样一来只需要很少的公有地址就可以让大量的内部主机访问公网。
+需要注意的一点是，如果私有范围使用的全局地址空间和另一个互联网上的实体冲突时，请求可能无法到达该地址，因为采用相同地址的本地系统会屏蔽掉使用相同地址的远端系统。为了避免这种情况发生，RFC1918中保留了3个IPv4的地址，专门做为私有地址范围：
+ 10.0.0.0/8 172.16.0.0/12 192.168.0.0/16  也就是说，不会有以以上三个地址作为公网地址出现。
+对于NAPT，又可分为两种：'><title>NAT详解</title>
+
+<link rel='canonical' href='https://example.com/p/nat%E8%AF%A6%E8%A7%A3/'>
+
+<link rel="stylesheet" href="/scss/style.min.b80bf249ce4a22cf55e8d7340a0b37a2f2c10f54f3a9a49cb94b694a2eb0bbea.css"><meta property='og:title' content='NAT详解'>
+<meta property='og:description' content='前言 还记得一个月前被面试官问到NAT的时候完全茫然，面试结束复盘的时候发现自己一直在用的内网穿透APP就是基于NAT的。平时还是得多问问为什么。
+ 在介绍NAT之前，首先需要简单介绍一下防火墙。
+防火墙 防火墙简介 防火墙的任务是控制互联网中网络流量的流向，本质上是一种能够限制转发流量类型的路由器。（代理防火墙严格意义上不算是）
+常见的防火墙主要有两种：
+ 包过滤防火墙（packet-filter firewall） 代理防火墙（proxy firewall）  包过滤防火墙是一个互联网路由器，能够根据条件对数据包进行丢弃/传输的操作。而代理防火墙是一个服务器主机，它作为TCP和UDP传输的一个端点，通常不会在IP协议层中路由IP数据包。
+二者的主要区别是所操作的协议栈的层次不同。
+包过滤防火墙 过滤器选项包括：IP地址、ICMP报文类型、数据包中的端口号等。
+包过滤防火墙可分为无状态的和有状态的。无状态的包过滤防火墙单独处理每一个数据包；而有状态的防火墙能够通过关联已经或者即将到达的数据包来推断数据信息。（举个例子，对于分片的IP报文，有状态的防火墙往往能够判断出其属于同一个IP数据报，但无状态的无法做到）
+代理防火墙 代理防火墙的本质是运行一个或多个应用层网关的主机。
+一般来说，防火墙内的客户端通常会进行特殊配制，从而能够连接到代理防火墙，而不是连接到真正提供服务的主机。所以说这种防火墙配置繁琐（必须为每个传输层服务设置一个代理，通过这个代理和新的服务器发起连接）。但也正因如此，代理防火墙是非常安全的。
+我的理解中，这是一种用配置的繁琐换安全性的trade-off。
+常见的代理防火墙的形式有：
+ HTTP代理防火墙  也称为Web代理，只能用于HTTP和HTTPS协议。这种代理对于内网用户来说相当于Web服务器，对于被访问的外部网站来说相当于Web客户端。
+此外，这种代理往往还提供其他的一些功能：
+ Web缓存功能。对网页内容进行缓存，从而减少网页延迟，提高用户访问体验。（例如HTTP缓存） 作为内容过滤器，基于黑名单屏蔽特定用户。 隧道代理服务器，功能和2相反。   SOCKS代理防火墙  相比于HTTP代理，范围更广，可以用于Web以外的其他服务。
+ NAT网络地址转换 基本概念 书上关于NAT的基本概念这一块个人认为解释的非常清楚，直接拿来：
+ NAT(Network Address Translation)本质上是一种允许在互联网不同地方重复使用相同的IP地址集的机制。建立NAT的主要动机是正在急剧减少的有限IP地址空间。使用NAT最常见的情况是，唯一与Internet连接的站点仅被分配了很少的几个IP地址（甚至只有一个IP地址），但是内部却有多台主机需要同时上网。当所有进出的流量均通过一个单独的NAT设备时，该设备将内部系统的地址空间和全球互联网地址空间分割开，因此所有的内部系统可以使用本地分配的私有IP地址访问互联网。
+ NAT的工作原理是重写通过路由器数据包的识别信息，并且大多数的NAT同时进行地址转换和包过滤。
+引入NAT其实一开始主要为了解决两个问题：
+ IP地址不够用 路由可扩展性不强  其中，CIDR的发展比较好的解决了后一个问题。（书上是这么描述的，但我觉得这两个问题归根结底是一个问题。可能书上想表达的意思是，路由可扩展性不强，是由于5种IP地址种类已经定死了，无法再修改，而CIDR解决了这个问题；而IP地址不够用，是因为在IP地址定死了，不可变，我们不去考虑IP地址分类的前提条件下，一个IP只能对应一个地址，不能被复用）
+NAT也一定程度上缓解了前一个问题。但是NAT毕竟只是权宜之计，真正解决第一个问题还是得用IPv6，但是又因为NAT发展的太好了，使用的人太多了，反而拖延了IPv6的推进。
+对于NAT，也有很多其他的缺点，例如：
+ 如果想要让NAT内部的主机能够被访问，必须进行特殊配置，因为互联网上的用户无法直接访问私有地址的主机 为了让NAT正常工作，每一个属于同一个连接或者关联的双向数据包都必须通过相同的NAT，因为NAT必须重写每个数据包的寻址信息，从而双方正常通信。  传统NAT：基本NAT和NAPT 传统的基本的NAT只执行对IP地址的重写，实际上这种NAT没什么用，因为需要的还是相同数量的IP地址。一个更好的做法是NAPT，NAPT使用传输层标识符（也就是TCP和UDP的端口）来确定一个特定的数据包到底和NAT内部的哪台私有主机关联。这样一来只需要很少的公有地址就可以让大量的内部主机访问公网。
+需要注意的一点是，如果私有范围使用的全局地址空间和另一个互联网上的实体冲突时，请求可能无法到达该地址，因为采用相同地址的本地系统会屏蔽掉使用相同地址的远端系统。为了避免这种情况发生，RFC1918中保留了3个IPv4的地址，专门做为私有地址范围：
+ 10.0.0.0/8 172.16.0.0/12 192.168.0.0/16  也就是说，不会有以以上三个地址作为公网地址出现。
+对于NAPT，又可分为两种：'>
+<meta property='og:url' content='https://example.com/p/nat%E8%AF%A6%E8%A7%A3/'>
+<meta property='og:site_name' content='耶宵夜'>
+<meta property='og:type' content='article'><meta property='article:section' content='Post' /><meta property='article:tag' content='Network' /><meta property='article:published_time' content='2022-03-06T17:31:19&#43;08:00'/><meta property='article:modified_time' content='2022-03-06T17:31:19&#43;08:00'/>
+<meta name="twitter:title" content="NAT详解">
+<meta name="twitter:description" content="前言 还记得一个月前被面试官问到NAT的时候完全茫然，面试结束复盘的时候发现自己一直在用的内网穿透APP就是基于NAT的。平时还是得多问问为什么。
+ 在介绍NAT之前，首先需要简单介绍一下防火墙。
+防火墙 防火墙简介 防火墙的任务是控制互联网中网络流量的流向，本质上是一种能够限制转发流量类型的路由器。（代理防火墙严格意义上不算是）
+常见的防火墙主要有两种：
+ 包过滤防火墙（packet-filter firewall） 代理防火墙（proxy firewall）  包过滤防火墙是一个互联网路由器，能够根据条件对数据包进行丢弃/传输的操作。而代理防火墙是一个服务器主机，它作为TCP和UDP传输的一个端点，通常不会在IP协议层中路由IP数据包。
+二者的主要区别是所操作的协议栈的层次不同。
+包过滤防火墙 过滤器选项包括：IP地址、ICMP报文类型、数据包中的端口号等。
+包过滤防火墙可分为无状态的和有状态的。无状态的包过滤防火墙单独处理每一个数据包；而有状态的防火墙能够通过关联已经或者即将到达的数据包来推断数据信息。（举个例子，对于分片的IP报文，有状态的防火墙往往能够判断出其属于同一个IP数据报，但无状态的无法做到）
+代理防火墙 代理防火墙的本质是运行一个或多个应用层网关的主机。
+一般来说，防火墙内的客户端通常会进行特殊配制，从而能够连接到代理防火墙，而不是连接到真正提供服务的主机。所以说这种防火墙配置繁琐（必须为每个传输层服务设置一个代理，通过这个代理和新的服务器发起连接）。但也正因如此，代理防火墙是非常安全的。
+我的理解中，这是一种用配置的繁琐换安全性的trade-off。
+常见的代理防火墙的形式有：
+ HTTP代理防火墙  也称为Web代理，只能用于HTTP和HTTPS协议。这种代理对于内网用户来说相当于Web服务器，对于被访问的外部网站来说相当于Web客户端。
+此外，这种代理往往还提供其他的一些功能：
+ Web缓存功能。对网页内容进行缓存，从而减少网页延迟，提高用户访问体验。（例如HTTP缓存） 作为内容过滤器，基于黑名单屏蔽特定用户。 隧道代理服务器，功能和2相反。   SOCKS代理防火墙  相比于HTTP代理，范围更广，可以用于Web以外的其他服务。
+ NAT网络地址转换 基本概念 书上关于NAT的基本概念这一块个人认为解释的非常清楚，直接拿来：
+ NAT(Network Address Translation)本质上是一种允许在互联网不同地方重复使用相同的IP地址集的机制。建立NAT的主要动机是正在急剧减少的有限IP地址空间。使用NAT最常见的情况是，唯一与Internet连接的站点仅被分配了很少的几个IP地址（甚至只有一个IP地址），但是内部却有多台主机需要同时上网。当所有进出的流量均通过一个单独的NAT设备时，该设备将内部系统的地址空间和全球互联网地址空间分割开，因此所有的内部系统可以使用本地分配的私有IP地址访问互联网。
+ NAT的工作原理是重写通过路由器数据包的识别信息，并且大多数的NAT同时进行地址转换和包过滤。
+引入NAT其实一开始主要为了解决两个问题：
+ IP地址不够用 路由可扩展性不强  其中，CIDR的发展比较好的解决了后一个问题。（书上是这么描述的，但我觉得这两个问题归根结底是一个问题。可能书上想表达的意思是，路由可扩展性不强，是由于5种IP地址种类已经定死了，无法再修改，而CIDR解决了这个问题；而IP地址不够用，是因为在IP地址定死了，不可变，我们不去考虑IP地址分类的前提条件下，一个IP只能对应一个地址，不能被复用）
+NAT也一定程度上缓解了前一个问题。但是NAT毕竟只是权宜之计，真正解决第一个问题还是得用IPv6，但是又因为NAT发展的太好了，使用的人太多了，反而拖延了IPv6的推进。
+对于NAT，也有很多其他的缺点，例如：
+ 如果想要让NAT内部的主机能够被访问，必须进行特殊配置，因为互联网上的用户无法直接访问私有地址的主机 为了让NAT正常工作，每一个属于同一个连接或者关联的双向数据包都必须通过相同的NAT，因为NAT必须重写每个数据包的寻址信息，从而双方正常通信。  传统NAT：基本NAT和NAPT 传统的基本的NAT只执行对IP地址的重写，实际上这种NAT没什么用，因为需要的还是相同数量的IP地址。一个更好的做法是NAPT，NAPT使用传输层标识符（也就是TCP和UDP的端口）来确定一个特定的数据包到底和NAT内部的哪台私有主机关联。这样一来只需要很少的公有地址就可以让大量的内部主机访问公网。
+需要注意的一点是，如果私有范围使用的全局地址空间和另一个互联网上的实体冲突时，请求可能无法到达该地址，因为采用相同地址的本地系统会屏蔽掉使用相同地址的远端系统。为了避免这种情况发生，RFC1918中保留了3个IPv4的地址，专门做为私有地址范围：
+ 10.0.0.0/8 172.16.0.0/12 192.168.0.0/16  也就是说，不会有以以上三个地址作为公网地址出现。
+对于NAPT，又可分为两种：">
+    </head>
+    <body class="
+    article-page
+    ">
+    <script>
+        (function() {
+            const colorSchemeKey = 'StackColorScheme';
+            if(!localStorage.getItem(colorSchemeKey)){
+                localStorage.setItem(colorSchemeKey, "auto");
+            }
+        })();
+    </script><script>
+    (function() {
+        const colorSchemeKey = 'StackColorScheme';
+        const colorSchemeItem = localStorage.getItem(colorSchemeKey);
+        const supportDarkMode = window.matchMedia('(prefers-color-scheme: dark)').matches === true;
+
+        if (colorSchemeItem == 'dark' || colorSchemeItem === 'auto' && supportDarkMode) {
+            
+
+            document.documentElement.dataset.scheme = 'dark';
+        } else {
+            document.documentElement.dataset.scheme = 'light';
+        }
+    })();
+</script>
+<div class="container main-container flex on-phone--column extended"><aside class="sidebar left-sidebar sticky ">
+    <button class="hamburger hamburger--spin" type="button" id="toggle-menu" aria-label="Toggle Menu">
+        <span class="hamburger-box">
+            <span class="hamburger-inner"></span>
+        </span>
+    </button>
+
+    <header>
+        
+            
+            <figure class="site-avatar">
+                <a href="/">
+                
+                    
+                    
+                    
+                        
+                        <img src="/img/yeahxy_hu49da789840988e7b71825591d19947e9_110231_300x0_resize_box_3.png" width="300"
+                            height="300" class="site-logo" loading="lazy" alt="Avatar">
+                    
+                
+                </a>
+                
+                    <span class="emoji">😷</span>
+                
+            </figure>
+            
+        
+        
+        <div class="site-meta">
+            <h1 class="site-name"><a href="/">耶宵夜</a></h1>
+            <h2 class="site-description">Amazing things happen.</h2>
+        </div>
+    </header><ol class="social-menu">
+            
+                <li>
+                    <a 
+                        href='https://github.com/OxOtn3'
+                        target="_blank"
+                        title="GitHub"
+                    >
+                        
+                        
+                            <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-brand-github" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z" fill="none"/>
+  <path d="M9 19c-4.3 1.4 -4.3 -2.5 -6 -3m12 5v-3.5c0 -1 .1 -1.4 -.5 -2c2.8 -.3 5.5 -1.4 5.5 -6a4.6 4.6 0 0 0 -1.3 -3.2a4.2 4.2 0 0 0 -.1 -3.2s-1.1 -.3 -3.5 1.3a12.3 12.3 0 0 0 -6.2 0c-2.4 -1.6 -3.5 -1.3 -3.5 -1.3a4.2 4.2 0 0 0 -.1 3.2a4.6 4.6 0 0 0 -1.3 3.2c0 4.6 2.7 5.7 5.5 6c-.6 .6 -.6 1.2 -.5 2v3.5" />
+</svg>
+
+
+
+                        
+                    </a>
+                </li>
+            
+                <li>
+                    <a 
+                        href='https://twitter.com'
+                        target="_blank"
+                        title="Twitter"
+                    >
+                        
+                        
+                            <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-brand-twitter" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z" fill="none"/>
+  <path d="M22 4.01c-1 .49 -1.98 .689 -3 .99c-1.121 -1.265 -2.783 -1.335 -4.38 -.737s-2.643 2.06 -2.62 3.737v1c-3.245 .083 -6.135 -1.395 -8 -4c0 0 -4.182 7.433 4 11c-1.872 1.247 -3.739 2.088 -6 2c3.308 1.803 6.913 2.423 10.034 1.517c3.58 -1.04 6.522 -3.723 7.651 -7.742a13.84 13.84 0 0 0 .497 -3.753c-.002 -.249 1.51 -2.772 1.818 -4.013z" />
+</svg>
+
+
+
+                        
+                    </a>
+                </li>
+            
+        </ol><ol class="menu" id="main-menu">
+        
+        
+
+        <div class="menu-bottom-section">
+                <li id="i18n-switch">  
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-language" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z" fill="none"/>
+  <path d="M4 5h7" />
+  <path d="M9 3v2c0 4.418 -2.239 8 -5 8" />
+  <path d="M5 9c-.003 2.144 2.952 3.908 6.7 4" />
+  <path d="M12 20l4 -9l4 9" />
+  <path d="M19.1 18h-6.2" />
+</svg>
+
+
+
+                    <select name="language" onchange="window.location.href = this.selectedOptions[0].value">
+                        
+                            <option value="https://example.com/" selected>English</option>
+                        
+                            <option value="https://example.com/cn/" >中文</option>
+                        
+                            <option value="https://example.com/ar/" >عربي</option>
+                        
+                    </select>
+                </li>
+            
+            
+            
+                <li id="dark-mode-toggle">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-toggle-left" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <circle cx="8" cy="12" r="2" />
+  <rect x="2" y="6" width="20" height="12" rx="6" />
+</svg>
+
+
+
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-toggle-right" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <circle cx="16" cy="12" r="2" />
+  <rect x="2" y="6" width="20" height="12" rx="6" />
+</svg>
+
+
+
+                    <span>Dark Mode</span>
+                </li>
+            
+        </div>
+    </ol>
+</aside>
+<main class="main full-width">
+    <article class="main-article">
+    <header class="article-header">
+
+    <div class="article-details">
+    
+
+    <div class="article-title-wrapper">
+        <h2 class="article-title">
+            <a href="/p/nat%E8%AF%A6%E8%A7%A3/">NAT详解</a>
+        </h2>
+    
+        
+    </div>
+
+    
+    <footer class="article-time">
+        
+            <div>
+                <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-calendar-time" width="56" height="56" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <path d="M11.795 21h-6.795a2 2 0 0 1 -2 -2v-12a2 2 0 0 1 2 -2h12a2 2 0 0 1 2 2v4" />
+  <circle cx="18" cy="18" r="4" />
+  <path d="M15 3v4" />
+  <path d="M7 3v4" />
+  <path d="M3 11h16" />
+  <path d="M18 16.496v1.504l1 1" />
+</svg>
+                <time class="article-time--published">Mar 06, 2022</time>
+            </div>
+        
+
+        
+            <div>
+                <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-clock" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <circle cx="12" cy="12" r="9" />
+  <polyline points="12 7 12 12 15 15" />
+</svg>
+
+
+
+                <time class="article-time--reading">
+                    1 minute read
+                </time>
+            </div>
+        
+    </footer>
+    
+
+    
+</div>
+</header>
+
+    <section class="article-content">
+    
+    
+    <h2 id="前言">前言</h2>
+<p>还记得一个月前被面试官问到NAT的时候完全茫然，面试结束复盘的时候发现自己一直在用的内网穿透APP就是基于NAT的。平时还是得多问问为什么。</p>
+<hr>
+<p>在介绍NAT之前，首先需要简单介绍一下防火墙。</p>
+<h2 id="防火墙"><strong>防火墙</strong></h2>
+<h3 id="防火墙简介">防火墙简介</h3>
+<p>防火墙的任务是<strong>控制互联网中网络流量的流向</strong>，本质上是一种<strong>能够限制转发流量类型的路由器</strong>。（代理防火墙严格意义上不算是）</p>
+<p>常见的防火墙主要有两种：</p>
+<ul>
+<li>包过滤防火墙（packet-filter firewall）</li>
+<li>代理防火墙（proxy firewall）</li>
+</ul>
+<p>包过滤防火墙是一个互联网路由器，能够根据条件对数据包进行丢弃/传输的操作。而代理防火墙是一个服务器主机，它作为TCP和UDP传输的一个端点，通常不会在IP协议层中路由IP数据包。</p>
+<p>二者的主要区别是<strong>所操作的协议栈的层次不同</strong>。</p>
+<h3 id="包过滤防火墙">包过滤防火墙</h3>
+<p>过滤器选项包括：IP地址、ICMP报文类型、数据包中的端口号等。</p>
+<p>包过滤防火墙可分为<strong>无状态的</strong>和<strong>有状态的</strong>。无状态的包过滤防火墙单独处理每一个数据包；而有状态的防火墙能够通过关联已经或者即将到达的数据包来推断数据信息。（举个例子，对于分片的IP报文，有状态的防火墙往往能够判断出其属于同一个IP数据报，但无状态的无法做到）</p>
+<h3 id="代理防火墙">代理防火墙</h3>
+<p>代理防火墙的本质是运行一个或多个应用层网关的主机。</p>
+<p>一般来说，防火墙内的客户端通常会进行特殊配制，从而能够连接到代理防火墙，而不是连接到真正提供服务的主机。所以说这种防火墙配置繁琐（必须为每个传输层服务设置一个代理，通过这个代理和新的服务器发起连接）。但也正因如此，代理防火墙是非常安全的。</p>
+<p><strong>我的理解中，这是一种用配置的繁琐换安全性的trade-off。</strong></p>
+<p>常见的代理防火墙的形式有：</p>
+<ul>
+<li>HTTP代理防火墙</li>
+</ul>
+<p>也称为Web代理，只能用于HTTP和HTTPS协议。这种代理对于内网用户来说相当于Web服务器，对于被访问的外部网站来说相当于Web客户端。</p>
+<p>此外，这种代理往往还提供其他的一些功能：</p>
+<ol>
+<li>Web缓存功能。对网页内容进行缓存，从而减少网页延迟，提高用户访问体验。（例如HTTP缓存）</li>
+<li>作为内容过滤器，基于黑名单屏蔽特定用户。</li>
+<li>隧道代理服务器，功能和2相反。</li>
+</ol>
+<ul>
+<li>SOCKS代理防火墙</li>
+</ul>
+<p>相比于HTTP代理，范围更广，可以用于Web以外的其他服务。</p>
+<hr>
+<h2 id="nat网络地址转换">NAT网络地址转换</h2>
+<h3 id="基本概念">基本概念</h3>
+<p>书上关于NAT的基本概念这一块个人认为解释的非常清楚，直接拿来：</p>
+<blockquote>
+<p>NAT(Network Address Translation)<strong>本质</strong>上是一种允许在互联网不同地方重复使用相同的IP地址集的机制。建立NAT的<strong>主要动机</strong>是正在急剧减少的有限IP地址空间。使用NAT<strong>最常见的情况</strong>是，唯一与Internet连接的站点仅被分配了很少的几个IP地址（甚至只有一个IP地址），但是内部却有多台主机需要同时上网。当所有进出的流量均通过一个单独的NAT设备时，该设备将内部系统的地址空间和全球互联网地址空间分割开，因此所有的内部系统可以使用本地分配的私有IP地址访问互联网。</p>
+</blockquote>
+<p>NAT的工作原理是<strong>重写通过路由器数据包的识别信息</strong>，并且大多数的NAT同时进行地址转换和包过滤。</p>
+<p>引入NAT其实一开始主要为了解决两个问题：</p>
+<ul>
+<li>IP地址不够用</li>
+<li>路由可扩展性不强</li>
+</ul>
+<p>其中，<strong>CIDR</strong>的发展比较好的解决了后一个问题。（书上是这么描述的，但我觉得这两个问题归根结底是一个问题。可能书上想表达的意思是，路由可扩展性不强，是由于5种IP地址种类已经定死了，无法再修改，而CIDR解决了这个问题；而IP地址不够用，是因为在IP地址定死了，不可变，我们不去考虑IP地址分类的前提条件下，一个IP只能对应一个地址，不能被复用）</p>
+<p>NAT也一定程度上缓解了前一个问题。但是NAT毕竟只是权宜之计，真正解决第一个问题还是得用IPv6，但是又因为NAT发展的太好了，使用的人太多了，反而拖延了IPv6的推进。</p>
+<p>对于NAT，也有很多其他的缺点，例如：</p>
+<ul>
+<li>如果想要让NAT内部的主机能够被访问，必须进行特殊配置，因为互联网上的用户无法直接访问私有地址的主机</li>
+<li>为了让NAT正常工作，每一个属于同一个连接或者关联的双向数据包都必须通过相同的NAT，因为NAT必须重写每个数据包的寻址信息，从而双方正常通信。</li>
+</ul>
+<h3 id="传统nat基本nat和napt">传统NAT：基本NAT和NAPT</h3>
+<p>传统的基本的NAT只执行对IP地址的重写，实际上这种NAT没什么用，因为需要的还是相同数量的IP地址。一个更好的做法是NAPT，NAPT使用传输层标识符（也就是TCP和UDP的端口）来确定一个特定的数据包到底和NAT内部的哪台私有主机关联。这样一来只需要很少的公有地址就可以让大量的内部主机访问公网。</p>
+<p>需要注意的一点是，如果私有范围使用的全局地址空间和另一个互联网上的实体冲突时，请求可能无法到达该地址，因为采用相同地址的本地系统会屏蔽掉使用相同地址的远端系统。为了避免这种情况发生，RFC1918中保留了3个IPv4的地址，专门做为私有地址范围：</p>
+<ul>
+<li>10.0.0.0/8</li>
+<li>172.16.0.0/12</li>
+<li>192.168.0.0/16</li>
+</ul>
+<p>也就是说，不会有以以上三个地址作为公网地址出现。</p>
+<p>对于NAPT，又可分为两种：</p>
+<h4 id="对称型nat-symmetric">对称型NAT (Symmetric)</h4>
+<p>对每个外部主机或端口的会话都会映射为不同的端口。</p>
+<h4 id="圆锥型natcone">圆锥型NAT(Cone)</h4>
+<p>圆锥型NAT又可细分为：</p>
+<ul>
+<li>完全圆锥型NAT(Full Cone)</li>
+</ul>
+<p>IP和端口都不受限</p>
+<ul>
+<li>地址限制圆锥型(Address Restricted Cone)</li>
+</ul>
+<p>IP受限，端口不受限</p>
+<ul>
+<li>端口限制圆锥型(Port Restricted Cone)</li>
+</ul>
+<p>端口限，IP不受限</p>
+<h3 id="发夹和nat环回">发夹和NAT环回</h3>
+<p>对于这个问题，书上是这样描述的：</p>
+<blockquote>
+<p>假设主机X1试图建立一个到主机X2的连接。如果X1知道私有地址信息，X2:x2，这没有任何问题，因为可以直接进行连接。然而，在某些情况下X1只知道公用地址信息，X2':x2'。在这些情况下，X1借助NAT采用目的地址X2':x2&rsquo;尝试连接X2。当NAT意识到X2':x2&rsquo;和X2:x2之间存在映射，并将数据包转发到位于NAT私有地址空间内的X2:x2时，会触发发夹过程。此时会出现一个问题，目的是X2:x2的数据报头部中的源地址应该是X1:x1还是X1':x1'？</p>
+</blockquote>
+<p>其实问题就一句话：<strong>在只知道公用地址的前提下，对于内网中的数据包发送的源地址应该用内网地址还是公网地址？</strong></p>
+<p>如果NAT给X2的数据包的源地址信息是X1':x1'，即公有地址，那么这种NAT被称为有“外部源ID地址和端口”的发夹行为。之所以需要这种行为，是为了均采用全局路由地址的应用能够识别对方。（我的理解是，这相当于给内网地址披了一层皮，因为X2的逻辑可能是处理外网地址的请求，这样以来实现了<strong>规格化</strong>。有点类似于<strong>IP隧道技术</strong>。）</p>
+<p>还有一个比较有意思的地方是，为什么这种行为叫做**发夹(hairpinning)**呢？一开始没理解，于是上网搜了一下：</p>
+<p><img src="/p/nat%E8%AF%A6%E8%A7%A3/hairpin.png"
+	width="1602"
+	height="532"
+	srcset="/p/nat%E8%AF%A6%E8%A7%A3/hairpin_hu8aea337501150dec4cb4eb45a6fc1d8e_215067_480x0_resize_box_3.png 480w, /p/nat%E8%AF%A6%E8%A7%A3/hairpin_hu8aea337501150dec4cb4eb45a6fc1d8e_215067_1024x0_resize_box_3.png 1024w"
+	loading="lazy"
+	
+		alt="Hairpin"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="301"
+		data-flex-basis="722px"
+	
+></p>
+<p>看完这个解释，再结合具体的例子，hairpinning这个名字起的还真挺形象的。</p>
+<h3 id="nat穿越">NAT穿越</h3>
+<p>为了解决外网无法主动向内网建立连接的问题，主要通过<strong>NAT转换表</strong>。</p>
+<p>在NAT内侧主机上运行的应用先发送一个虚拟的网络包给NAT外侧，而NAT不知道这个包内容究竟是什么，会正常读取包首部信息，并生成一个转换表。这时，如果转换表构造合理，NAT外侧的主机就可以和内侧主机建立连接并通信。</p>
+<p>比较常见的会话穿越技术有：</p>
+<ul>
+<li>STUN(Session Traversal Utilities for NAT)，能够在多种环境中确定在NAT中使用的外部IP地址和端口号，也可以通过保持激活的信息来维持当前的NAT绑定。</li>
+<li>TURN(Traversal Using Relays around NAT)，将所有的数据交换都经由服务器来完成，这样NAT将没有障碍，但会造成服务器的负载、丢包、延迟问题。</li>
+</ul>
+<hr>
+<h2 id="包过滤防火墙和nat">包过滤防火墙和NAT</h2>
+<h3 id="包过滤防火墙配置规则">包过滤防火墙配置规则</h3>
+<p>对于包过滤防火墙，需要配置一套说明匹配条件的指令。其中每个规则通常包含模式匹配条件(pattern-matching criteria)和对应的动作(action)（很像Gateway里面的<strong>断言</strong>），匹配条件通常是包字段值，例如源/目的IP地址、端口号等。</p>
+<p>当一个数据包到达时，就会在<strong>ACL</strong>中按照顺序匹配条件，第一个匹配的规则执行相应的动作。比较常见的动作有阻止或加速相应流量、调整计数器、写入日志等**（AOP思想）**。</p>
+<h3 id="iptables">iptables</h3>
+<p>iptables是Linux中用来构建防火墙系统的，它能够提供无状态和有状态的包过滤，以及支持NAT和NAPT。</p>
+<p>iptables包含<strong>过滤表格(table)<strong>和</strong>过滤链(chain)</strong>，一个表格包括多个预定义的链，或者多个自定义的链。iptables有三个预定义的表格：</p>
+<ul>
+<li>filter</li>
+</ul>
+<p>用来处理基本的包过滤，包括INPUT、FORWARD和OUTPUT三条过滤链，分别对应于目的地是防火墙路由器本身运行程序的流量、路由时通过防火墙的流量、从该防火墙主机出发的流量。</p>
+<ul>
+<li>nat</li>
+</ul>
+<p>包含了PREROUTING、OUTPUT和POSTROUTING三条过滤链。</p>
+<ul>
+<li>mangle</li>
+</ul>
+<p>包含了五条链，主要用于任意修改数据包。</p>
+<p>每条过滤链是一个规则列表，每条规则是匹配条件和对应的动作，包括：ACCEPT（转发）、DROP（丢弃）、QUEUE（将数据包交给程序处理）、RETURN（在之前出发的一条链中继续，即返还该包），以及其他自定义的动作。</p>
+<hr>
+<p>参考资料：</p>
+<p>《TCP/IP详解 卷1:协议》</p>
+<p>《图解TCP/IP》</p>
+
+</section>
+
+
+    <footer class="article-footer">
+    
+    <section class="article-tags">
+        
+            <a href="/tags/network/">Network</a>
+        
+    </section>
+
+
+    
+    <section class="article-copyright">
+        <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-copyright" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <circle cx="12" cy="12" r="9" />
+  <path d="M14.5 9a3.5 4 0 1 0 0 6" />
+</svg>
+
+
+
+        <span>Licensed under CC BY-NC-SA 4.0</span>
+    </section>
+    </footer>
+
+
+    
+        <link 
+                rel="stylesheet" 
+                href="https://cdn.jsdelivr.net/npm/katex@0.13.13/dist/katex.min.css"integrity="sha384-RZU/ijkSsFbcmivfdRBQDtwuwVqK7GMOw6IMvKyeWL2K5UAlyp6WonmB8m7Jd0Hn"crossorigin="anonymous"
+            ><script 
+                src="https://cdn.jsdelivr.net/npm/katex@0.13.13/dist/katex.min.js"integrity="sha384-pK1WpvzWVBQiP0/GjnvRxV4mOb0oxFuyRxJlk6vVw146n3egcN5C925NCP7a7BY8"crossorigin="anonymous"
+                defer
+                >
+            </script><script 
+                src="https://cdn.jsdelivr.net/npm/katex@0.13.13/dist/contrib/auto-render.min.js"integrity="sha384-vZTG03m&#43;2yp6N6BNi5iM4rW4oIwk5DfcNdFfxkk9ZWpDriOkXX8voJBFrAO7MpVl"crossorigin="anonymous"
+                defer
+                >
+            </script><script>
+    window.addEventListener("DOMContentLoaded", () => {
+        renderMathInElement(document.querySelector(`.article-content`), {
+            delimiters: [
+                { left: "$$", right: "$$", display: true },
+                { left: "$", right: "$", display: false },
+                { left: "\\(", right: "\\)", display: false },
+                { left: "\\[", right: "\\]", display: true }
+            ]
+        });})
+</script>
+    
+</article>
+
+    
+
+    
+
+     
+    
+        
+    <div class="disqus-container">
+    <div id="disqus_thread"></div>
+<script type="application/javascript">
+    var disqus_config = function () {
+    
+    
+    
+    };
+    (function() {
+        if (["localhost", "127.0.0.1"].indexOf(window.location.hostname) != -1) {
+            document.getElementById('disqus_thread').innerHTML = 'Disqus comments not available by default when the website is previewed locally.';
+            return;
+        }
+        var d = document, s = d.createElement('script'); s.async = true;
+        s.src = '//' + "hugo-theme-stack" + '.disqus.com/embed.js';
+        s.setAttribute('data-timestamp', +new Date());
+        (d.head || d.body).appendChild(s);
+    })();
+</script>
+<noscript>Please enable JavaScript to view the <a href="https://disqus.com/?ref_noscript">comments powered by Disqus.</a></noscript>
+<a href="https://disqus.com" class="dsq-brlink">comments powered by <span class="logo-disqus">Disqus</span></a>
+</div>
+
+<style>
+    .disqus-container {
+        background-color: var(--card-background);
+        border-radius: var(--card-border-radius);
+        box-shadow: var(--shadow-l1);
+        padding: var(--card-padding);
+    }
+</style>
+
+<script>
+    window.addEventListener('onColorSchemeChange', (e) => {
+        if (DISQUS) {
+            DISQUS.reset({
+                reload: true
+            });
+        }
+    })
+</script>
+
+    
+
+    <footer class="site-footer">
+    <section class="copyright">
+        &copy; 
+        
+            2020 - 
+        
+        2022 耶宵夜
+    </section>
+    
+    <section class="powerby">
+        Built with <a href="https://gohugo.io/" target="_blank" rel="noopener">Hugo</a> <br />
+        Theme <b><a href="https://github.com/CaiJimmy/hugo-theme-stack" target="_blank" rel="noopener" data-version="3.9.0">Stack</a></b> designed by <a href="https://jimmycai.com" target="_blank" rel="noopener">Jimmy</a>
+    </section>
+</footer>
+
+
+    
+<div class="pswp" tabindex="-1" role="dialog" aria-hidden="true">
+
+    
+    <div class="pswp__bg"></div>
+
+    
+    <div class="pswp__scroll-wrap">
+
+        
+        <div class="pswp__container">
+            <div class="pswp__item"></div>
+            <div class="pswp__item"></div>
+            <div class="pswp__item"></div>
+        </div>
+
+        
+        <div class="pswp__ui pswp__ui--hidden">
+
+            <div class="pswp__top-bar">
+
+                
+
+                <div class="pswp__counter"></div>
+
+                <button class="pswp__button pswp__button--close" title="Close (Esc)"></button>
+
+                <button class="pswp__button pswp__button--share" title="Share"></button>
+
+                <button class="pswp__button pswp__button--fs" title="Toggle fullscreen"></button>
+
+                <button class="pswp__button pswp__button--zoom" title="Zoom in/out"></button>
+
+                
+                
+                <div class="pswp__preloader">
+                    <div class="pswp__preloader__icn">
+                        <div class="pswp__preloader__cut">
+                            <div class="pswp__preloader__donut"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="pswp__share-modal pswp__share-modal--hidden pswp__single-tap">
+                <div class="pswp__share-tooltip"></div>
+            </div>
+
+            <button class="pswp__button pswp__button--arrow--left" title="Previous (arrow left)">
+            </button>
+
+            <button class="pswp__button pswp__button--arrow--right" title="Next (arrow right)">
+            </button>
+
+            <div class="pswp__caption">
+                <div class="pswp__caption__center"></div>
+            </div>
+
+        </div>
+
+    </div>
+
+</div><script 
+                src="https://cdn.jsdelivr.net/npm/photoswipe@4.1.3/dist/photoswipe.min.js"integrity="sha256-ePwmChbbvXbsO02lbM3HoHbSHTHFAeChekF1xKJdleo="crossorigin="anonymous"
+                defer
+                >
+            </script><script 
+                src="https://cdn.jsdelivr.net/npm/photoswipe@4.1.3/dist/photoswipe-ui-default.min.js"integrity="sha256-UKkzOn/w1mBxRmLLGrSeyB4e1xbrp4xylgAWb3M42pU="crossorigin="anonymous"
+                defer
+                >
+            </script><link 
+                rel="stylesheet" 
+                href="https://cdn.jsdelivr.net/npm/photoswipe@4.1.3/dist/default-skin/default-skin.css"integrity="sha256-c0uckgykQ9v5k&#43;IqViZOZKc47Jn7KQil4/MP3ySA3F8="crossorigin="anonymous"
+            ><link 
+                rel="stylesheet" 
+                href="https://cdn.jsdelivr.net/npm/photoswipe@4.1.3/dist/photoswipe.css"integrity="sha256-SBLU4vv6CA6lHsZ1XyTdhyjJxCjPif/TRkjnsyGAGnE="crossorigin="anonymous"
+            >
+
+            </main>
+    <aside class="sidebar right-sidebar sticky">
+        
+            
+                
+    <section class="widget archives">
+        <div class="widget-icon">
+            <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-hash" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <line x1="5" y1="9" x2="19" y2="9" />
+  <line x1="5" y1="15" x2="19" y2="15" />
+  <line x1="11" y1="4" x2="7" y2="20" />
+  <line x1="17" y1="4" x2="13" y2="20" />
+</svg>
+
+
+
+        </div>
+        <h2 class="widget-title section-title">Table of contents</h2>
+        
+        <div class="widget--toc">
+            <nav id="TableOfContents">
+  <ol>
+    <li><a href="#前言">前言</a></li>
+    <li><a href="#防火墙"><strong>防火墙</strong></a>
+      <ol>
+        <li><a href="#防火墙简介">防火墙简介</a></li>
+        <li><a href="#包过滤防火墙">包过滤防火墙</a></li>
+        <li><a href="#代理防火墙">代理防火墙</a></li>
+      </ol>
+    </li>
+    <li><a href="#nat网络地址转换">NAT网络地址转换</a>
+      <ol>
+        <li><a href="#基本概念">基本概念</a></li>
+        <li><a href="#传统nat基本nat和napt">传统NAT：基本NAT和NAPT</a>
+          <ol>
+            <li><a href="#对称型nat-symmetric">对称型NAT (Symmetric)</a></li>
+            <li><a href="#圆锥型natcone">圆锥型NAT(Cone)</a></li>
+          </ol>
+        </li>
+        <li><a href="#发夹和nat环回">发夹和NAT环回</a></li>
+        <li><a href="#nat穿越">NAT穿越</a></li>
+      </ol>
+    </li>
+    <li><a href="#包过滤防火墙和nat">包过滤防火墙和NAT</a>
+      <ol>
+        <li><a href="#包过滤防火墙配置规则">包过滤防火墙配置规则</a></li>
+        <li><a href="#iptables">iptables</a></li>
+      </ol>
+    </li>
+  </ol>
+</nav>
+        </div>
+    </section>
+
+            
+        
+    </aside>
+
+
+        </div>
+        <script 
+                src="https://cdn.jsdelivr.net/npm/node-vibrant@3.1.5/dist/vibrant.min.js"integrity="sha256-5NovOZc4iwiAWTYIFiIM7DxKUXKWvpVEuMEPLzcm5/g="crossorigin="anonymous"
+                
+                >
+            </script><script type="text/javascript" src="/ts/main.js" defer></script>
+<script>
+    (function () {
+        const customFont = document.createElement('link');
+        customFont.href = "https://fonts.googleapis.com/css2?family=Lato:wght@300;400;700&display=swap";
+
+        customFont.type = "text/css";
+        customFont.rel = "stylesheet";
+
+        document.head.appendChild(customFont);
+    }());
+</script>
+
+    </body>
+</html>

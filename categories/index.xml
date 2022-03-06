@@ -1,10 +1,19 @@
 <?xml version="1.0" encoding="utf-8" standalone="yes"?>
 <rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom">
     <channel>
-        <title>Categories on yeahxy&#39;s blog</title>
+        <title>Categories on 耶宵夜</title>
         <link>https://example.com/categories/</link>
-        <description>Recent content in Categories on yeahxy&#39;s blog</description>
+        <description>Recent content in Categories on 耶宵夜</description>
         <generator>Hugo -- gohugo.io</generator>
-        <language>en-us</language><atom:link href="https://example.com/categories/index.xml" rel="self" type="application/rss+xml" />
+        <language>en-us</language>
+        <lastBuildDate>Sun, 06 Mar 2022 16:59:40 +0800</lastBuildDate><atom:link href="https://example.com/categories/index.xml" rel="self" type="application/rss+xml" /><item>
+        <title>读书笔记</title>
+        <link>https://example.com/categories/%E8%AF%BB%E4%B9%A6%E7%AC%94%E8%AE%B0/</link>
+        <pubDate>Sun, 06 Mar 2022 16:59:40 +0800</pubDate>
+        
+        <guid>https://example.com/categories/%E8%AF%BB%E4%B9%A6%E7%AC%94%E8%AE%B0/</guid>
+        <description></description>
+        </item>
+        
     </channel>
 </rss>

@@ -1,0 +1,157 @@
+<?xml version="1.0" encoding="utf-8" standalone="yes"?>
+<rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom">
+    <channel>
+        <title>Network on 耶宵夜</title>
+        <link>https://example.com/tags/network/</link>
+        <description>Recent content in Network on 耶宵夜</description>
+        <generator>Hugo -- gohugo.io</generator>
+        <language>en-us</language>
+        <lastBuildDate>Sun, 06 Mar 2022 17:31:19 +0800</lastBuildDate><atom:link href="https://example.com/tags/network/index.xml" rel="self" type="application/rss+xml" /><item>
+        <title>NAT详解</title>
+        <link>https://example.com/p/nat%E8%AF%A6%E8%A7%A3/</link>
+        <pubDate>Sun, 06 Mar 2022 17:31:19 +0800</pubDate>
+        
+        <guid>https://example.com/p/nat%E8%AF%A6%E8%A7%A3/</guid>
+        <description>&lt;h2 id=&#34;前言&#34;&gt;前言&lt;/h2&gt;
+&lt;p&gt;还记得一个月前被面试官问到NAT的时候完全茫然，面试结束复盘的时候发现自己一直在用的内网穿透APP就是基于NAT的。平时还是得多问问为什么。&lt;/p&gt;
+&lt;hr&gt;
+&lt;p&gt;在介绍NAT之前，首先需要简单介绍一下防火墙。&lt;/p&gt;
+&lt;h2 id=&#34;防火墙&#34;&gt;&lt;strong&gt;防火墙&lt;/strong&gt;&lt;/h2&gt;
+&lt;h3 id=&#34;防火墙简介&#34;&gt;防火墙简介&lt;/h3&gt;
+&lt;p&gt;防火墙的任务是&lt;strong&gt;控制互联网中网络流量的流向&lt;/strong&gt;，本质上是一种&lt;strong&gt;能够限制转发流量类型的路由器&lt;/strong&gt;。（代理防火墙严格意义上不算是）&lt;/p&gt;
+&lt;p&gt;常见的防火墙主要有两种：&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;包过滤防火墙（packet-filter firewall）&lt;/li&gt;
+&lt;li&gt;代理防火墙（proxy firewall）&lt;/li&gt;
+&lt;/ul&gt;
+&lt;p&gt;包过滤防火墙是一个互联网路由器，能够根据条件对数据包进行丢弃/传输的操作。而代理防火墙是一个服务器主机，它作为TCP和UDP传输的一个端点，通常不会在IP协议层中路由IP数据包。&lt;/p&gt;
+&lt;p&gt;二者的主要区别是&lt;strong&gt;所操作的协议栈的层次不同&lt;/strong&gt;。&lt;/p&gt;
+&lt;h3 id=&#34;包过滤防火墙&#34;&gt;包过滤防火墙&lt;/h3&gt;
+&lt;p&gt;过滤器选项包括：IP地址、ICMP报文类型、数据包中的端口号等。&lt;/p&gt;
+&lt;p&gt;包过滤防火墙可分为&lt;strong&gt;无状态的&lt;/strong&gt;和&lt;strong&gt;有状态的&lt;/strong&gt;。无状态的包过滤防火墙单独处理每一个数据包；而有状态的防火墙能够通过关联已经或者即将到达的数据包来推断数据信息。（举个例子，对于分片的IP报文，有状态的防火墙往往能够判断出其属于同一个IP数据报，但无状态的无法做到）&lt;/p&gt;
+&lt;h3 id=&#34;代理防火墙&#34;&gt;代理防火墙&lt;/h3&gt;
+&lt;p&gt;代理防火墙的本质是运行一个或多个应用层网关的主机。&lt;/p&gt;
+&lt;p&gt;一般来说，防火墙内的客户端通常会进行特殊配制，从而能够连接到代理防火墙，而不是连接到真正提供服务的主机。所以说这种防火墙配置繁琐（必须为每个传输层服务设置一个代理，通过这个代理和新的服务器发起连接）。但也正因如此，代理防火墙是非常安全的。&lt;/p&gt;
+&lt;p&gt;&lt;strong&gt;我的理解中，这是一种用配置的繁琐换安全性的trade-off。&lt;/strong&gt;&lt;/p&gt;
+&lt;p&gt;常见的代理防火墙的形式有：&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;HTTP代理防火墙&lt;/li&gt;
+&lt;/ul&gt;
+&lt;p&gt;也称为Web代理，只能用于HTTP和HTTPS协议。这种代理对于内网用户来说相当于Web服务器，对于被访问的外部网站来说相当于Web客户端。&lt;/p&gt;
+&lt;p&gt;此外，这种代理往往还提供其他的一些功能：&lt;/p&gt;
+&lt;ol&gt;
+&lt;li&gt;Web缓存功能。对网页内容进行缓存，从而减少网页延迟，提高用户访问体验。（例如HTTP缓存）&lt;/li&gt;
+&lt;li&gt;作为内容过滤器，基于黑名单屏蔽特定用户。&lt;/li&gt;
+&lt;li&gt;隧道代理服务器，功能和2相反。&lt;/li&gt;
+&lt;/ol&gt;
+&lt;ul&gt;
+&lt;li&gt;SOCKS代理防火墙&lt;/li&gt;
+&lt;/ul&gt;
+&lt;p&gt;相比于HTTP代理，范围更广，可以用于Web以外的其他服务。&lt;/p&gt;
+&lt;hr&gt;
+&lt;h2 id=&#34;nat网络地址转换&#34;&gt;NAT网络地址转换&lt;/h2&gt;
+&lt;h3 id=&#34;基本概念&#34;&gt;基本概念&lt;/h3&gt;
+&lt;p&gt;书上关于NAT的基本概念这一块个人认为解释的非常清楚，直接拿来：&lt;/p&gt;
+&lt;blockquote&gt;
+&lt;p&gt;NAT(Network Address Translation)&lt;strong&gt;本质&lt;/strong&gt;上是一种允许在互联网不同地方重复使用相同的IP地址集的机制。建立NAT的&lt;strong&gt;主要动机&lt;/strong&gt;是正在急剧减少的有限IP地址空间。使用NAT&lt;strong&gt;最常见的情况&lt;/strong&gt;是，唯一与Internet连接的站点仅被分配了很少的几个IP地址（甚至只有一个IP地址），但是内部却有多台主机需要同时上网。当所有进出的流量均通过一个单独的NAT设备时，该设备将内部系统的地址空间和全球互联网地址空间分割开，因此所有的内部系统可以使用本地分配的私有IP地址访问互联网。&lt;/p&gt;
+&lt;/blockquote&gt;
+&lt;p&gt;NAT的工作原理是&lt;strong&gt;重写通过路由器数据包的识别信息&lt;/strong&gt;，并且大多数的NAT同时进行地址转换和包过滤。&lt;/p&gt;
+&lt;p&gt;引入NAT其实一开始主要为了解决两个问题：&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;IP地址不够用&lt;/li&gt;
+&lt;li&gt;路由可扩展性不强&lt;/li&gt;
+&lt;/ul&gt;
+&lt;p&gt;其中，&lt;strong&gt;CIDR&lt;/strong&gt;的发展比较好的解决了后一个问题。（书上是这么描述的，但我觉得这两个问题归根结底是一个问题。可能书上想表达的意思是，路由可扩展性不强，是由于5种IP地址种类已经定死了，无法再修改，而CIDR解决了这个问题；而IP地址不够用，是因为在IP地址定死了，不可变，我们不去考虑IP地址分类的前提条件下，一个IP只能对应一个地址，不能被复用）&lt;/p&gt;
+&lt;p&gt;NAT也一定程度上缓解了前一个问题。但是NAT毕竟只是权宜之计，真正解决第一个问题还是得用IPv6，但是又因为NAT发展的太好了，使用的人太多了，反而拖延了IPv6的推进。&lt;/p&gt;
+&lt;p&gt;对于NAT，也有很多其他的缺点，例如：&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;如果想要让NAT内部的主机能够被访问，必须进行特殊配置，因为互联网上的用户无法直接访问私有地址的主机&lt;/li&gt;
+&lt;li&gt;为了让NAT正常工作，每一个属于同一个连接或者关联的双向数据包都必须通过相同的NAT，因为NAT必须重写每个数据包的寻址信息，从而双方正常通信。&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3 id=&#34;传统nat基本nat和napt&#34;&gt;传统NAT：基本NAT和NAPT&lt;/h3&gt;
+&lt;p&gt;传统的基本的NAT只执行对IP地址的重写，实际上这种NAT没什么用，因为需要的还是相同数量的IP地址。一个更好的做法是NAPT，NAPT使用传输层标识符（也就是TCP和UDP的端口）来确定一个特定的数据包到底和NAT内部的哪台私有主机关联。这样一来只需要很少的公有地址就可以让大量的内部主机访问公网。&lt;/p&gt;
+&lt;p&gt;需要注意的一点是，如果私有范围使用的全局地址空间和另一个互联网上的实体冲突时，请求可能无法到达该地址，因为采用相同地址的本地系统会屏蔽掉使用相同地址的远端系统。为了避免这种情况发生，RFC1918中保留了3个IPv4的地址，专门做为私有地址范围：&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;10.0.0.0/8&lt;/li&gt;
+&lt;li&gt;172.16.0.0/12&lt;/li&gt;
+&lt;li&gt;192.168.0.0/16&lt;/li&gt;
+&lt;/ul&gt;
+&lt;p&gt;也就是说，不会有以以上三个地址作为公网地址出现。&lt;/p&gt;
+&lt;p&gt;对于NAPT，又可分为两种：&lt;/p&gt;
+&lt;h4 id=&#34;对称型nat-symmetric&#34;&gt;对称型NAT (Symmetric)&lt;/h4&gt;
+&lt;p&gt;对每个外部主机或端口的会话都会映射为不同的端口。&lt;/p&gt;
+&lt;h4 id=&#34;圆锥型natcone&#34;&gt;圆锥型NAT(Cone)&lt;/h4&gt;
+&lt;p&gt;圆锥型NAT又可细分为：&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;完全圆锥型NAT(Full Cone)&lt;/li&gt;
+&lt;/ul&gt;
+&lt;p&gt;IP和端口都不受限&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;地址限制圆锥型(Address Restricted Cone)&lt;/li&gt;
+&lt;/ul&gt;
+&lt;p&gt;IP受限，端口不受限&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;端口限制圆锥型(Port Restricted Cone)&lt;/li&gt;
+&lt;/ul&gt;
+&lt;p&gt;端口限，IP不受限&lt;/p&gt;
+&lt;h3 id=&#34;发夹和nat环回&#34;&gt;发夹和NAT环回&lt;/h3&gt;
+&lt;p&gt;对于这个问题，书上是这样描述的：&lt;/p&gt;
+&lt;blockquote&gt;
+&lt;p&gt;假设主机X1试图建立一个到主机X2的连接。如果X1知道私有地址信息，X2:x2，这没有任何问题，因为可以直接进行连接。然而，在某些情况下X1只知道公用地址信息，X2&#39;:x2&#39;。在这些情况下，X1借助NAT采用目的地址X2&#39;:x2&amp;rsquo;尝试连接X2。当NAT意识到X2&#39;:x2&amp;rsquo;和X2:x2之间存在映射，并将数据包转发到位于NAT私有地址空间内的X2:x2时，会触发发夹过程。此时会出现一个问题，目的是X2:x2的数据报头部中的源地址应该是X1:x1还是X1&#39;:x1&#39;？&lt;/p&gt;
+&lt;/blockquote&gt;
+&lt;p&gt;其实问题就一句话：&lt;strong&gt;在只知道公用地址的前提下，对于内网中的数据包发送的源地址应该用内网地址还是公网地址？&lt;/strong&gt;&lt;/p&gt;
+&lt;p&gt;如果NAT给X2的数据包的源地址信息是X1&#39;:x1&#39;，即公有地址，那么这种NAT被称为有“外部源ID地址和端口”的发夹行为。之所以需要这种行为，是为了均采用全局路由地址的应用能够识别对方。（我的理解是，这相当于给内网地址披了一层皮，因为X2的逻辑可能是处理外网地址的请求，这样以来实现了&lt;strong&gt;规格化&lt;/strong&gt;。有点类似于&lt;strong&gt;IP隧道技术&lt;/strong&gt;。）&lt;/p&gt;
+&lt;p&gt;还有一个比较有意思的地方是，为什么这种行为叫做**发夹(hairpinning)**呢？一开始没理解，于是上网搜了一下：&lt;/p&gt;
+&lt;p&gt;&lt;img src=&#34;https://example.com/p/nat%E8%AF%A6%E8%A7%A3/hairpin.png&#34;
+	width=&#34;1602&#34;
+	height=&#34;532&#34;
+	srcset=&#34;https://example.com/p/nat%E8%AF%A6%E8%A7%A3/hairpin_hu8aea337501150dec4cb4eb45a6fc1d8e_215067_480x0_resize_box_3.png 480w, https://example.com/p/nat%E8%AF%A6%E8%A7%A3/hairpin_hu8aea337501150dec4cb4eb45a6fc1d8e_215067_1024x0_resize_box_3.png 1024w&#34;
+	loading=&#34;lazy&#34;
+	
+		alt=&#34;Hairpin&#34;
+	
+	
+		class=&#34;gallery-image&#34; 
+		data-flex-grow=&#34;301&#34;
+		data-flex-basis=&#34;722px&#34;
+	
+&gt;&lt;/p&gt;
+&lt;p&gt;看完这个解释，再结合具体的例子，hairpinning这个名字起的还真挺形象的。&lt;/p&gt;
+&lt;h3 id=&#34;nat穿越&#34;&gt;NAT穿越&lt;/h3&gt;
+&lt;p&gt;为了解决外网无法主动向内网建立连接的问题，主要通过&lt;strong&gt;NAT转换表&lt;/strong&gt;。&lt;/p&gt;
+&lt;p&gt;在NAT内侧主机上运行的应用先发送一个虚拟的网络包给NAT外侧，而NAT不知道这个包内容究竟是什么，会正常读取包首部信息，并生成一个转换表。这时，如果转换表构造合理，NAT外侧的主机就可以和内侧主机建立连接并通信。&lt;/p&gt;
+&lt;p&gt;比较常见的会话穿越技术有：&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;STUN(Session Traversal Utilities for NAT)，能够在多种环境中确定在NAT中使用的外部IP地址和端口号，也可以通过保持激活的信息来维持当前的NAT绑定。&lt;/li&gt;
+&lt;li&gt;TURN(Traversal Using Relays around NAT)，将所有的数据交换都经由服务器来完成，这样NAT将没有障碍，但会造成服务器的负载、丢包、延迟问题。&lt;/li&gt;
+&lt;/ul&gt;
+&lt;hr&gt;
+&lt;h2 id=&#34;包过滤防火墙和nat&#34;&gt;包过滤防火墙和NAT&lt;/h2&gt;
+&lt;h3 id=&#34;包过滤防火墙配置规则&#34;&gt;包过滤防火墙配置规则&lt;/h3&gt;
+&lt;p&gt;对于包过滤防火墙，需要配置一套说明匹配条件的指令。其中每个规则通常包含模式匹配条件(pattern-matching criteria)和对应的动作(action)（很像Gateway里面的&lt;strong&gt;断言&lt;/strong&gt;），匹配条件通常是包字段值，例如源/目的IP地址、端口号等。&lt;/p&gt;
+&lt;p&gt;当一个数据包到达时，就会在&lt;strong&gt;ACL&lt;/strong&gt;中按照顺序匹配条件，第一个匹配的规则执行相应的动作。比较常见的动作有阻止或加速相应流量、调整计数器、写入日志等**（AOP思想）**。&lt;/p&gt;
+&lt;h3 id=&#34;iptables&#34;&gt;iptables&lt;/h3&gt;
+&lt;p&gt;iptables是Linux中用来构建防火墙系统的，它能够提供无状态和有状态的包过滤，以及支持NAT和NAPT。&lt;/p&gt;
+&lt;p&gt;iptables包含&lt;strong&gt;过滤表格(table)&lt;strong&gt;和&lt;/strong&gt;过滤链(chain)&lt;/strong&gt;，一个表格包括多个预定义的链，或者多个自定义的链。iptables有三个预定义的表格：&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;filter&lt;/li&gt;
+&lt;/ul&gt;
+&lt;p&gt;用来处理基本的包过滤，包括INPUT、FORWARD和OUTPUT三条过滤链，分别对应于目的地是防火墙路由器本身运行程序的流量、路由时通过防火墙的流量、从该防火墙主机出发的流量。&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;nat&lt;/li&gt;
+&lt;/ul&gt;
+&lt;p&gt;包含了PREROUTING、OUTPUT和POSTROUTING三条过滤链。&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;mangle&lt;/li&gt;
+&lt;/ul&gt;
+&lt;p&gt;包含了五条链，主要用于任意修改数据包。&lt;/p&gt;
+&lt;p&gt;每条过滤链是一个规则列表，每条规则是匹配条件和对应的动作，包括：ACCEPT（转发）、DROP（丢弃）、QUEUE（将数据包交给程序处理）、RETURN（在之前出发的一条链中继续，即返还该包），以及其他自定义的动作。&lt;/p&gt;
+&lt;hr&gt;
+&lt;p&gt;参考资料：&lt;/p&gt;
+&lt;p&gt;《TCP/IP详解 卷1:协议》&lt;/p&gt;
+&lt;p&gt;《图解TCP/IP》&lt;/p&gt;
+</description>
+        </item>
+        
+    </channel>
+</rss>

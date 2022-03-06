@@ -1,0 +1,59 @@
+<?xml version="1.0" encoding="utf-8" standalone="yes"?>
+<rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom">
+    <channel>
+        <title>读书笔记 on 耶宵夜</title>
+        <link>https://example.com/categories/%E8%AF%BB%E4%B9%A6%E7%AC%94%E8%AE%B0/</link>
+        <description>Recent content in 读书笔记 on 耶宵夜</description>
+        <generator>Hugo -- gohugo.io</generator>
+        <language>en-us</language>
+        <lastBuildDate>Sun, 06 Mar 2022 16:59:40 +0800</lastBuildDate><atom:link href="https://example.com/categories/%E8%AF%BB%E4%B9%A6%E7%AC%94%E8%AE%B0/index.xml" rel="self" type="application/rss+xml" /><item>
+        <title>《MySQL技术内幕》读书笔记（1）</title>
+        <link>https://example.com/p/innodb_book_1/</link>
+        <pubDate>Sun, 06 Mar 2022 16:59:40 +0800</pubDate>
+        
+        <guid>https://example.com/p/innodb_book_1/</guid>
+        <description>&lt;p&gt;2.4 CheckPoint，讲到了CheckPoint解决的问题，其中第三点是“重做日志不可用时，刷新脏页”。详细的描述是这样的：&lt;/p&gt;
+&lt;blockquote&gt;
+&lt;p&gt;重做日志可以被重用的部分是指这些重做日志已经不再需要，即当数据库发生宕机时，数据库恢复操作不需要这部分的重做日志，因此这部分就可以被覆盖重用。&lt;strong&gt;若此时重做日志还需要使用，那么必须强制产生CheckPoint，将缓冲池中的页至少刷新到当前重做日志的位置。&lt;/strong&gt;&lt;/p&gt;
+&lt;/blockquote&gt;
+&lt;p&gt;读到这一段的时候，尤其是加粗部分的内容，我不禁产生疑惑：缓冲池中的页不是本来就和redolog状态相同吗？为什么还需要将缓冲池中的页刷新？&lt;/p&gt;
+&lt;p&gt;第二天回顾的时候，我思考了一下。&lt;strong&gt;（以下为是个人解读，如有错误欢迎批评指正）&lt;/strong&gt;&lt;/p&gt;
+&lt;p&gt;首先，由于InnoDB采用WAL搭配redolog保证crash safe，也就是更新数据的时候，先写redolog，再写buffer pool中的数据页。又由于写redolog时需要先写redolog buffer，而这个过程由于&lt;strong&gt;不需要doublewrite&lt;/strong&gt;，应该是比较快的。所以，这就可能导致在数据量大、并发写多的情况下，很多操作都被写到了redolog中，但还没有写到buffer pool中的数据页中，如图：&lt;/p&gt;
+&lt;p&gt;&lt;img src=&#34;https://example.com/p/innodb_book_1/redolog&amp;amp;bfpool.jpeg&#34;
+	width=&#34;3277&#34;
+	height=&#34;999&#34;
+	srcset=&#34;https://example.com/p/innodb_book_1/redolog&amp;amp;bfpool_hu9b47d580dc76ef093ae3038fc81ae849_273298_480x0_resize_q75_box.jpeg 480w, https://example.com/p/innodb_book_1/redolog&amp;amp;bfpool_hu9b47d580dc76ef093ae3038fc81ae849_273298_1024x0_resize_q75_box.jpeg 1024w&#34;
+	loading=&#34;lazy&#34;
+	
+		alt=&#34;redolog和buffer pool对比&#34;
+	
+	
+		class=&#34;gallery-image&#34; 
+		data-flex-grow=&#34;328&#34;
+		data-flex-basis=&#34;787px&#34;
+	
+&gt;&lt;/p&gt;
+&lt;p&gt;而这时，由于redolog是循环写，在空间不足时（写不下了），就产生了书上说的“不可用”状态。&lt;/p&gt;
+&lt;p&gt;因此此时，必须强制先将buffer pool中的数据页写入一部分（刷回盘），和redolog保持一致，从而腾出空间。具体的解决措施，即是属于Fuzzy CheckPoint的Async/Sync Flush CheckPoint，根据checkpoint_age，分别和async_water_mark以及sync_water_mark比较，选择相应的Flush操作。具体判断过程如下：&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;当checkpoint_age &amp;lt; async_water_mark时，无需刷页&lt;/li&gt;
+&lt;li&gt;当async_water_mark &amp;lt; checkpoint_age &amp;lt; sync_water_mark时，触发Async Flush&lt;/li&gt;
+&lt;li&gt;当sync_water_mark &amp;lt; checkpoint_age时，触发Sync Flush（一般很少发生）&lt;/li&gt;
+&lt;/ul&gt;
+&lt;p&gt;其中，water_mark的计算公式为：&lt;/p&gt;
+&lt;blockquote&gt;
+&lt;p&gt;async_water_mark = 75% * total_redo_log_file_size&lt;/p&gt;
+&lt;p&gt;sync_water_mark = 90% * total_redo_log_file_size&lt;/p&gt;
+&lt;/blockquote&gt;
+&lt;p&gt;而checkpoint_age的计算公式为：&lt;/p&gt;
+&lt;blockquote&gt;
+&lt;p&gt;checkpoint_age = redo_lsn - checkpoint_lsn&lt;/p&gt;
+&lt;/blockquote&gt;
+&lt;p&gt;LSN即Log Sequence Number，我的理解里，其实就和kafka里的offset作用差不多。&lt;/p&gt;
+&lt;p&gt;经过Flush操作之后，确保checkpoint_age &amp;lt; async_water_mark。&lt;/p&gt;
+&lt;p&gt;回到刚才的问题，所以，文中的“不可用”，指的应该是&lt;strong&gt;redolog写空间不足&lt;/strong&gt;。&lt;/p&gt;
+</description>
+        </item>
+        
+    </channel>
+</rss>

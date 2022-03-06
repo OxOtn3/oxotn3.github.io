@@ -1,0 +1,769 @@
+<!DOCTYPE html>
+<html lang="en-us" dir="ltr">
+    <head><meta charset='utf-8'>
+<meta name='viewport' content='width=device-width, initial-scale=1'><meta name='description' content='注：以下部分内容来自《MySQL技术内幕：InnoDB存储引擎》，以及我个人的一些理解和引申。如有侵权，请联系我删除，谢谢！
+为什么需要全文索引 我们都知道，InnoDB中主要使用B&#43;树作为索引（以及少量的哈希索引，主要是自适应哈希）。根据B&#43;树的特点，我们可以在有索引的情况下，使用索引的前缀进行查找，例如，检索以“Covid”作为标题开头的疫情新闻：
+1  SELECT*FROMnewsWHEREtopicLIKE&amp;#39;Covid%&amp;#39;;  这是可以实现的。（注意，这里和索引的最左匹配原则没有关系。由于LIKE关键字，这里使用的是范围查询，而最左匹配原则在遇到范围查询时无效。）
+然而当我们需要将查询的关键字不在字段的开头（更多情况下的确是这样），那么我们的B&#43;树索引就无法奏效了，例如，检索标题包含“Covid”的疫情新闻：
+1  SELECT*FROMnewsWHEREtopicLIKE&amp;#39;%Covid%&amp;#39;;  那么这时，就需要全文索引了。
+ 全文索引 定义 书上是这样定义全文索引的：
+ 全文索引（Full-Text Search）是将存储于数据库中的整本书或整篇文章中的任意内容信息查找出来的技术。它可以根据需要获得全文中有关章、节、段、句、词等信息，也可以进行各种分析和统计。
+ 讲的很清楚。
+Inverted Index（倒排索引） 之前一直听过倒排索引（比如ElasticSearch里面），读完书才发现，倒排索引实际上是全文索引的一种常见的实现。它的概念和B&#43;树的索引是等级的。
+倒排索引有两种具体的表现形式：
+ Inverted File Index，表现形式为（单词，单词所在文档ID） Full Inverted Index，表现形式为（单词，（单词所在文档ID，具体位置））  可以看到，二者的差别主要是后者多存储了一个文档中的具体位置，虽然需要维护额外的存储空间，但也更方便我们迅速找到相应的具体段落。InnoDB中的实现也是基于后者的。
+ InnoDB的实现 InnoDB从1.2.x版本开始支持全文索引。
+Auxiliary Table（辅助表） 作为索引，肯定需要空间进行存储。对于全文索引来说，存储索引的地方即是Auxiliary Table，即辅助表，一般是用关联数组实现的。InnoDB中的辅助表有两列，分别为word字段和ilist字段，在word字段上设有索引。而ilist，则是前面提到的（文档ID，位置），用来迅速定位。
+在InnoDB中，一共有六张辅助表（为了提高并发性能），每张表根据word的Latin编码进行分区。并且，辅助表持久化在磁盘上。
+FTS Index Cache（全文检索索引缓存） 正如其名，FTS Index Cache作为cache，目的非常单纯，就是为了提高检索性能；采用红黑树实现，根据（word，ilist）进行排序。
+为什么是红黑树？ 书上没有说，我去翻了官方文档也没有具体说明。但其实根据它的特点，我们不难推出：
+FTS Index Cache是存储在内存中的（in-memory）。红黑树相较于AVL树，由于在插入/删除的情况下需要的调整代价更小，所以在面对频繁的删改（这里也是同样）时性能更优。而我们知道，InnoDB使用B&#43;树作为索引结构主要是因为索引存储在磁盘上，为了尽量减少磁盘IO，需要树的高度尽可能低。但是在内存中，没有磁盘IO的限制，红黑树显然具有更大的优势。
+其实，基于在内存中这一前提，很多设计都选择了红黑树，epoll、JDK8的HashMap，由果溯因，也看得出红黑树效率是很高的。
+和Change Buffer对比 我们知道InnoDB中很多地方使用了缓存，而Change Buffer可以很好的与FTS Index Cache进行类比：
+ 对于Change Buffer，每次写入都不立刻持久化到磁盘上（不然也就失去了作为buffer的意义），而往往等到记录的数据页被读入内存中，再进行相应的修改； 而对于FTS Index Cache也是同样：当对全文检索进行查询时，FTS Index Cache的word字段才被合并到辅助表中，然后再进行查询。  那么这样一来，一定会有一个问题：当数据库宕机时，部分FTS Index Cache的数据可能还没有被写入辅助表中。为了解决这个问题，书上是这样描述的：'><title>全文索引详解（基于InnoDB引擎）</title>
+
+<link rel='canonical' href='https://example.com/p/%E5%85%A8%E6%96%87%E7%B4%A2%E5%BC%95%E8%AF%A6%E8%A7%A3%E5%9F%BA%E4%BA%8Einnodb%E5%BC%95%E6%93%8E/'>
+
+<link rel="stylesheet" href="/scss/style.min.b80bf249ce4a22cf55e8d7340a0b37a2f2c10f54f3a9a49cb94b694a2eb0bbea.css"><meta property='og:title' content='全文索引详解（基于InnoDB引擎）'>
+<meta property='og:description' content='注：以下部分内容来自《MySQL技术内幕：InnoDB存储引擎》，以及我个人的一些理解和引申。如有侵权，请联系我删除，谢谢！
+为什么需要全文索引 我们都知道，InnoDB中主要使用B&#43;树作为索引（以及少量的哈希索引，主要是自适应哈希）。根据B&#43;树的特点，我们可以在有索引的情况下，使用索引的前缀进行查找，例如，检索以“Covid”作为标题开头的疫情新闻：
+1  SELECT*FROMnewsWHEREtopicLIKE&amp;#39;Covid%&amp;#39;;  这是可以实现的。（注意，这里和索引的最左匹配原则没有关系。由于LIKE关键字，这里使用的是范围查询，而最左匹配原则在遇到范围查询时无效。）
+然而当我们需要将查询的关键字不在字段的开头（更多情况下的确是这样），那么我们的B&#43;树索引就无法奏效了，例如，检索标题包含“Covid”的疫情新闻：
+1  SELECT*FROMnewsWHEREtopicLIKE&amp;#39;%Covid%&amp;#39;;  那么这时，就需要全文索引了。
+ 全文索引 定义 书上是这样定义全文索引的：
+ 全文索引（Full-Text Search）是将存储于数据库中的整本书或整篇文章中的任意内容信息查找出来的技术。它可以根据需要获得全文中有关章、节、段、句、词等信息，也可以进行各种分析和统计。
+ 讲的很清楚。
+Inverted Index（倒排索引） 之前一直听过倒排索引（比如ElasticSearch里面），读完书才发现，倒排索引实际上是全文索引的一种常见的实现。它的概念和B&#43;树的索引是等级的。
+倒排索引有两种具体的表现形式：
+ Inverted File Index，表现形式为（单词，单词所在文档ID） Full Inverted Index，表现形式为（单词，（单词所在文档ID，具体位置））  可以看到，二者的差别主要是后者多存储了一个文档中的具体位置，虽然需要维护额外的存储空间，但也更方便我们迅速找到相应的具体段落。InnoDB中的实现也是基于后者的。
+ InnoDB的实现 InnoDB从1.2.x版本开始支持全文索引。
+Auxiliary Table（辅助表） 作为索引，肯定需要空间进行存储。对于全文索引来说，存储索引的地方即是Auxiliary Table，即辅助表，一般是用关联数组实现的。InnoDB中的辅助表有两列，分别为word字段和ilist字段，在word字段上设有索引。而ilist，则是前面提到的（文档ID，位置），用来迅速定位。
+在InnoDB中，一共有六张辅助表（为了提高并发性能），每张表根据word的Latin编码进行分区。并且，辅助表持久化在磁盘上。
+FTS Index Cache（全文检索索引缓存） 正如其名，FTS Index Cache作为cache，目的非常单纯，就是为了提高检索性能；采用红黑树实现，根据（word，ilist）进行排序。
+为什么是红黑树？ 书上没有说，我去翻了官方文档也没有具体说明。但其实根据它的特点，我们不难推出：
+FTS Index Cache是存储在内存中的（in-memory）。红黑树相较于AVL树，由于在插入/删除的情况下需要的调整代价更小，所以在面对频繁的删改（这里也是同样）时性能更优。而我们知道，InnoDB使用B&#43;树作为索引结构主要是因为索引存储在磁盘上，为了尽量减少磁盘IO，需要树的高度尽可能低。但是在内存中，没有磁盘IO的限制，红黑树显然具有更大的优势。
+其实，基于在内存中这一前提，很多设计都选择了红黑树，epoll、JDK8的HashMap，由果溯因，也看得出红黑树效率是很高的。
+和Change Buffer对比 我们知道InnoDB中很多地方使用了缓存，而Change Buffer可以很好的与FTS Index Cache进行类比：
+ 对于Change Buffer，每次写入都不立刻持久化到磁盘上（不然也就失去了作为buffer的意义），而往往等到记录的数据页被读入内存中，再进行相应的修改； 而对于FTS Index Cache也是同样：当对全文检索进行查询时，FTS Index Cache的word字段才被合并到辅助表中，然后再进行查询。  那么这样一来，一定会有一个问题：当数据库宕机时，部分FTS Index Cache的数据可能还没有被写入辅助表中。为了解决这个问题，书上是这样描述的：'>
+<meta property='og:url' content='https://example.com/p/%E5%85%A8%E6%96%87%E7%B4%A2%E5%BC%95%E8%AF%A6%E8%A7%A3%E5%9F%BA%E4%BA%8Einnodb%E5%BC%95%E6%93%8E/'>
+<meta property='og:site_name' content='耶宵夜'>
+<meta property='og:type' content='article'><meta property='article:section' content='Post' /><meta property='article:tag' content='InnoDB' /><meta property='article:tag' content='MySQL' /><meta property='article:published_time' content='2022-03-06T17:20:33&#43;08:00'/><meta property='article:modified_time' content='2022-03-06T17:20:33&#43;08:00'/>
+<meta name="twitter:title" content="全文索引详解（基于InnoDB引擎）">
+<meta name="twitter:description" content="注：以下部分内容来自《MySQL技术内幕：InnoDB存储引擎》，以及我个人的一些理解和引申。如有侵权，请联系我删除，谢谢！
+为什么需要全文索引 我们都知道，InnoDB中主要使用B&#43;树作为索引（以及少量的哈希索引，主要是自适应哈希）。根据B&#43;树的特点，我们可以在有索引的情况下，使用索引的前缀进行查找，例如，检索以“Covid”作为标题开头的疫情新闻：
+1  SELECT*FROMnewsWHEREtopicLIKE&amp;#39;Covid%&amp;#39;;  这是可以实现的。（注意，这里和索引的最左匹配原则没有关系。由于LIKE关键字，这里使用的是范围查询，而最左匹配原则在遇到范围查询时无效。）
+然而当我们需要将查询的关键字不在字段的开头（更多情况下的确是这样），那么我们的B&#43;树索引就无法奏效了，例如，检索标题包含“Covid”的疫情新闻：
+1  SELECT*FROMnewsWHEREtopicLIKE&amp;#39;%Covid%&amp;#39;;  那么这时，就需要全文索引了。
+ 全文索引 定义 书上是这样定义全文索引的：
+ 全文索引（Full-Text Search）是将存储于数据库中的整本书或整篇文章中的任意内容信息查找出来的技术。它可以根据需要获得全文中有关章、节、段、句、词等信息，也可以进行各种分析和统计。
+ 讲的很清楚。
+Inverted Index（倒排索引） 之前一直听过倒排索引（比如ElasticSearch里面），读完书才发现，倒排索引实际上是全文索引的一种常见的实现。它的概念和B&#43;树的索引是等级的。
+倒排索引有两种具体的表现形式：
+ Inverted File Index，表现形式为（单词，单词所在文档ID） Full Inverted Index，表现形式为（单词，（单词所在文档ID，具体位置））  可以看到，二者的差别主要是后者多存储了一个文档中的具体位置，虽然需要维护额外的存储空间，但也更方便我们迅速找到相应的具体段落。InnoDB中的实现也是基于后者的。
+ InnoDB的实现 InnoDB从1.2.x版本开始支持全文索引。
+Auxiliary Table（辅助表） 作为索引，肯定需要空间进行存储。对于全文索引来说，存储索引的地方即是Auxiliary Table，即辅助表，一般是用关联数组实现的。InnoDB中的辅助表有两列，分别为word字段和ilist字段，在word字段上设有索引。而ilist，则是前面提到的（文档ID，位置），用来迅速定位。
+在InnoDB中，一共有六张辅助表（为了提高并发性能），每张表根据word的Latin编码进行分区。并且，辅助表持久化在磁盘上。
+FTS Index Cache（全文检索索引缓存） 正如其名，FTS Index Cache作为cache，目的非常单纯，就是为了提高检索性能；采用红黑树实现，根据（word，ilist）进行排序。
+为什么是红黑树？ 书上没有说，我去翻了官方文档也没有具体说明。但其实根据它的特点，我们不难推出：
+FTS Index Cache是存储在内存中的（in-memory）。红黑树相较于AVL树，由于在插入/删除的情况下需要的调整代价更小，所以在面对频繁的删改（这里也是同样）时性能更优。而我们知道，InnoDB使用B&#43;树作为索引结构主要是因为索引存储在磁盘上，为了尽量减少磁盘IO，需要树的高度尽可能低。但是在内存中，没有磁盘IO的限制，红黑树显然具有更大的优势。
+其实，基于在内存中这一前提，很多设计都选择了红黑树，epoll、JDK8的HashMap，由果溯因，也看得出红黑树效率是很高的。
+和Change Buffer对比 我们知道InnoDB中很多地方使用了缓存，而Change Buffer可以很好的与FTS Index Cache进行类比：
+ 对于Change Buffer，每次写入都不立刻持久化到磁盘上（不然也就失去了作为buffer的意义），而往往等到记录的数据页被读入内存中，再进行相应的修改； 而对于FTS Index Cache也是同样：当对全文检索进行查询时，FTS Index Cache的word字段才被合并到辅助表中，然后再进行查询。  那么这样一来，一定会有一个问题：当数据库宕机时，部分FTS Index Cache的数据可能还没有被写入辅助表中。为了解决这个问题，书上是这样描述的：">
+    </head>
+    <body class="
+    article-page
+    ">
+    <script>
+        (function() {
+            const colorSchemeKey = 'StackColorScheme';
+            if(!localStorage.getItem(colorSchemeKey)){
+                localStorage.setItem(colorSchemeKey, "auto");
+            }
+        })();
+    </script><script>
+    (function() {
+        const colorSchemeKey = 'StackColorScheme';
+        const colorSchemeItem = localStorage.getItem(colorSchemeKey);
+        const supportDarkMode = window.matchMedia('(prefers-color-scheme: dark)').matches === true;
+
+        if (colorSchemeItem == 'dark' || colorSchemeItem === 'auto' && supportDarkMode) {
+            
+
+            document.documentElement.dataset.scheme = 'dark';
+        } else {
+            document.documentElement.dataset.scheme = 'light';
+        }
+    })();
+</script>
+<div class="container main-container flex on-phone--column extended"><aside class="sidebar left-sidebar sticky ">
+    <button class="hamburger hamburger--spin" type="button" id="toggle-menu" aria-label="Toggle Menu">
+        <span class="hamburger-box">
+            <span class="hamburger-inner"></span>
+        </span>
+    </button>
+
+    <header>
+        
+            
+            <figure class="site-avatar">
+                <a href="/">
+                
+                    
+                    
+                    
+                        
+                        <img src="/img/yeahxy_hu49da789840988e7b71825591d19947e9_110231_300x0_resize_box_3.png" width="300"
+                            height="300" class="site-logo" loading="lazy" alt="Avatar">
+                    
+                
+                </a>
+                
+                    <span class="emoji">😷</span>
+                
+            </figure>
+            
+        
+        
+        <div class="site-meta">
+            <h1 class="site-name"><a href="/">耶宵夜</a></h1>
+            <h2 class="site-description">Amazing things happen.</h2>
+        </div>
+    </header><ol class="social-menu">
+            
+                <li>
+                    <a 
+                        href='https://github.com/OxOtn3'
+                        target="_blank"
+                        title="GitHub"
+                    >
+                        
+                        
+                            <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-brand-github" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z" fill="none"/>
+  <path d="M9 19c-4.3 1.4 -4.3 -2.5 -6 -3m12 5v-3.5c0 -1 .1 -1.4 -.5 -2c2.8 -.3 5.5 -1.4 5.5 -6a4.6 4.6 0 0 0 -1.3 -3.2a4.2 4.2 0 0 0 -.1 -3.2s-1.1 -.3 -3.5 1.3a12.3 12.3 0 0 0 -6.2 0c-2.4 -1.6 -3.5 -1.3 -3.5 -1.3a4.2 4.2 0 0 0 -.1 3.2a4.6 4.6 0 0 0 -1.3 3.2c0 4.6 2.7 5.7 5.5 6c-.6 .6 -.6 1.2 -.5 2v3.5" />
+</svg>
+
+
+
+                        
+                    </a>
+                </li>
+            
+                <li>
+                    <a 
+                        href='https://twitter.com'
+                        target="_blank"
+                        title="Twitter"
+                    >
+                        
+                        
+                            <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-brand-twitter" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z" fill="none"/>
+  <path d="M22 4.01c-1 .49 -1.98 .689 -3 .99c-1.121 -1.265 -2.783 -1.335 -4.38 -.737s-2.643 2.06 -2.62 3.737v1c-3.245 .083 -6.135 -1.395 -8 -4c0 0 -4.182 7.433 4 11c-1.872 1.247 -3.739 2.088 -6 2c3.308 1.803 6.913 2.423 10.034 1.517c3.58 -1.04 6.522 -3.723 7.651 -7.742a13.84 13.84 0 0 0 .497 -3.753c-.002 -.249 1.51 -2.772 1.818 -4.013z" />
+</svg>
+
+
+
+                        
+                    </a>
+                </li>
+            
+        </ol><ol class="menu" id="main-menu">
+        
+        
+
+        <div class="menu-bottom-section">
+                <li id="i18n-switch">  
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-language" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z" fill="none"/>
+  <path d="M4 5h7" />
+  <path d="M9 3v2c0 4.418 -2.239 8 -5 8" />
+  <path d="M5 9c-.003 2.144 2.952 3.908 6.7 4" />
+  <path d="M12 20l4 -9l4 9" />
+  <path d="M19.1 18h-6.2" />
+</svg>
+
+
+
+                    <select name="language" onchange="window.location.href = this.selectedOptions[0].value">
+                        
+                            <option value="https://example.com/" selected>English</option>
+                        
+                            <option value="https://example.com/cn/" >中文</option>
+                        
+                            <option value="https://example.com/ar/" >عربي</option>
+                        
+                    </select>
+                </li>
+            
+            
+            
+                <li id="dark-mode-toggle">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-toggle-left" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <circle cx="8" cy="12" r="2" />
+  <rect x="2" y="6" width="20" height="12" rx="6" />
+</svg>
+
+
+
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-toggle-right" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <circle cx="16" cy="12" r="2" />
+  <rect x="2" y="6" width="20" height="12" rx="6" />
+</svg>
+
+
+
+                    <span>Dark Mode</span>
+                </li>
+            
+        </div>
+    </ol>
+</aside>
+<main class="main full-width">
+    <article class="main-article">
+    <header class="article-header">
+
+    <div class="article-details">
+    
+
+    <div class="article-title-wrapper">
+        <h2 class="article-title">
+            <a href="/p/%E5%85%A8%E6%96%87%E7%B4%A2%E5%BC%95%E8%AF%A6%E8%A7%A3%E5%9F%BA%E4%BA%8Einnodb%E5%BC%95%E6%93%8E/">全文索引详解（基于InnoDB引擎）</a>
+        </h2>
+    
+        
+    </div>
+
+    
+    <footer class="article-time">
+        
+            <div>
+                <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-calendar-time" width="56" height="56" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <path d="M11.795 21h-6.795a2 2 0 0 1 -2 -2v-12a2 2 0 0 1 2 -2h12a2 2 0 0 1 2 2v4" />
+  <circle cx="18" cy="18" r="4" />
+  <path d="M15 3v4" />
+  <path d="M7 3v4" />
+  <path d="M3 11h16" />
+  <path d="M18 16.496v1.504l1 1" />
+</svg>
+                <time class="article-time--published">Mar 06, 2022</time>
+            </div>
+        
+
+        
+            <div>
+                <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-clock" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <circle cx="12" cy="12" r="9" />
+  <polyline points="12 7 12 12 15 15" />
+</svg>
+
+
+
+                <time class="article-time--reading">
+                    1 minute read
+                </time>
+            </div>
+        
+    </footer>
+    
+
+    
+</div>
+</header>
+
+    <section class="article-content">
+    
+    
+    <p><em>注：以下部分内容来自《MySQL技术内幕：InnoDB存储引擎》，以及我个人的一些理解和引申。如有侵权，请联系我删除，谢谢！</em></p>
+<h2 id="为什么需要全文索引"><strong>为什么需要全文索引</strong></h2>
+<p>我们都知道，InnoDB中主要使用B+树作为索引（以及少量的哈希索引，主要是<strong>自适应哈希</strong>）。根据B+树的特点，我们可以在有索引的情况下，使用索引的前缀进行查找，例如，检索以“Covid”作为标题开头的疫情新闻：</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-sql" data-lang="sql"><span class="k">SELECT</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="k">FROM</span><span class="w"> </span><span class="n">news</span><span class="w"> </span><span class="k">WHERE</span><span class="w"> </span><span class="n">topic</span><span class="w"> </span><span class="k">LIKE</span><span class="w"> </span><span class="s1">&#39;Covid%&#39;</span><span class="p">;</span><span class="w">
+</span></code></pre></td></tr></table>
+</div>
+</div><p>这是可以实现的。（注意，这里和索引的<strong>最左匹配原则</strong>没有关系。由于LIKE关键字，这里使用的是范围查询，而最左匹配原则在遇到范围查询时无效。）</p>
+<p>然而当我们需要将查询的关键字不在字段的开头（更多情况下的确是这样），那么我们的B+树索引就无法奏效了，例如，检索标题包含“Covid”的疫情新闻：</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-sql" data-lang="sql"><span class="k">SELECT</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="k">FROM</span><span class="w"> </span><span class="n">news</span><span class="w"> </span><span class="k">WHERE</span><span class="w"> </span><span class="n">topic</span><span class="w"> </span><span class="k">LIKE</span><span class="w"> </span><span class="s1">&#39;%Covid%&#39;</span><span class="p">;</span><span class="w">
+</span></code></pre></td></tr></table>
+</div>
+</div><p>那么这时，就需要全文索引了。</p>
+<hr>
+<h2 id="全文索引">全文索引</h2>
+<h3 id="定义">定义</h3>
+<p>书上是这样定义全文索引的：</p>
+<blockquote>
+<p>全文索引（Full-Text Search）是将存储于数据库中的整本书或整篇文章中的任意内容信息查找出来的技术。它可以根据需要获得全文中有关章、节、段、句、词等信息，也可以进行各种分析和统计。</p>
+</blockquote>
+<p>讲的很清楚。</p>
+<h3 id="inverted-index倒排索引">Inverted Index（倒排索引）</h3>
+<p>之前一直听过倒排索引（比如ElasticSearch里面），读完书才发现，倒排索引实际上是全文索引的一种常见的实现。它的概念和B+树的索引是等级的。</p>
+<p>倒排索引有两种具体的表现形式：</p>
+<ul>
+<li>Inverted File Index，表现形式为（单词，单词所在文档ID）</li>
+<li>Full Inverted Index，表现形式为（单词，（单词所在文档ID，具体位置））</li>
+</ul>
+<p>可以看到，二者的差别主要是后者多存储了一个文档中的具体位置，虽然需要维护额外的存储空间，但也更方便我们迅速找到相应的具体段落。InnoDB中的实现也是基于后者的。</p>
+<hr>
+<h2 id="innodb的实现">InnoDB的实现</h2>
+<p>InnoDB从1.2.x版本开始支持全文索引。</p>
+<h3 id="auxiliary-table辅助表">Auxiliary Table（辅助表）</h3>
+<p>作为索引，肯定需要空间进行存储。对于全文索引来说，存储索引的地方即是<strong>Auxiliary Table</strong>，即辅助表，一般是用关联数组实现的。InnoDB中的辅助表有两列，分别为<strong>word</strong>字段和<strong>ilist</strong>字段，在word字段上设有索引。而ilist，则是前面提到的（文档ID，位置），用来迅速定位。</p>
+<p>在InnoDB中，一共有<strong>六张</strong>辅助表（为了提高并发性能），每张表根据word的Latin编码进行分区。并且，辅助表持久化在磁盘上。</p>
+<h3 id="fts-index-cache全文检索索引缓存">FTS Index Cache（全文检索索引缓存）</h3>
+<p>正如其名，FTS Index Cache作为cache，目的非常单纯，就是为了<strong>提高检索性能</strong>；采用<strong>红黑树</strong>实现，根据（word，ilist）进行排序。</p>
+<h4 id="为什么是红黑树">为什么是红黑树？</h4>
+<p>书上没有说，我去翻了官方文档也没有具体说明。但其实根据它的特点，我们不难推出：</p>
+<p>FTS Index Cache是存储在<strong>内存</strong>中的（in-memory）。红黑树相较于AVL树，由于在插入/删除的情况下需要的调整代价更小，所以在面对频繁的删改（这里也是同样）时性能更优。而我们知道，InnoDB使用B+树作为索引结构主要是因为索引存储在磁盘上，为了尽量减少磁盘IO，需要树的高度尽可能低。但是在内存中，没有磁盘IO的限制，红黑树显然具有更大的优势。</p>
+<p>其实，基于在内存中这一前提，很多设计都选择了红黑树，epoll、JDK8的HashMap，由果溯因，也看得出红黑树效率是很高的。</p>
+<h4 id="和change-buffer对比">和Change Buffer对比</h4>
+<p>我们知道InnoDB中很多地方使用了缓存，而<strong>Change Buffer</strong>可以很好的与FTS Index Cache进行类比：</p>
+<ul>
+<li>对于Change Buffer，每次写入都不立刻持久化到磁盘上（不然也就失去了作为buffer的意义），而往往等到记录的数据页被读入内存中，再进行相应的修改；</li>
+<li>而对于FTS Index Cache也是同样：当对全文检索进行查询时，FTS Index Cache的word字段才被合并到辅助表中，然后再进行查询。</li>
+</ul>
+<p>那么这样一来，一定会有一个问题：当数据库宕机时，部分FTS Index Cache的数据可能还没有被写入辅助表中。为了解决这个问题，书上是这样描述的：</p>
+<blockquote>
+<p>那么下次重启数据库时，当用户对表进行全文检索（查询或者插入操作）时，InnoDB存储引擎会自动读取未完成的文档，然后进行分词操作，再将分词的结果放入到FTS Index Cache中。</p>
+</blockquote>
+<p>说白了，就是保留上次的状态，类似于HTTP“断点续传”的功能。但是HTTP断点续传基于头部的range字段，而这里重新开始又基于什么呢？关于这一点，书上并没有给出明确的答复，但是我想，可以通过Redis中相似的操作，进行合理的推论：</p>
+<p>我们知道，Redis中对过期键采取的删除策略是惰性删除和定期删除。其中定期删除的实现由serverCron函数调用activeExpireCycle函数，在规定时间内遍历各个数据库。它内部维护了一个current_db的全局变量，记录当前函数的检查进度。如果此时遍历结束但没有遍历完，下一次再开始时就会从current_db标识的数据库开始，而不是从头开始。</p>
+<p>那么类比一下，这里对于FTS Index Cache的遍历写入就相当于对数据库中过期键的遍历检查。那么，和current_db相同，InnoDB应该也是维护了一个<strong>全局变量</strong>（当然，肯定需要持久化到磁盘上），记录当前写入的进度，从而使得下次重启时，能够续着上一次的进度进行写入。</p>
+<h3 id="fts-document-id">FTS Document ID</h3>
+<p>如果光凭借辅助表中的word和ilist，我们无法直接将需要进行搜索的文本与辅助表进行联系。而<strong>FTS Document ID</strong>帮助我们完成了这项工作。它的作用，即是在数据表中，和word进行映射。</p>
+<p>在InnoDB中，这一列被命名为FTS_DOC_ID，类型必须为<strong>BIGINT UNSIGNED NOT NULL</strong>。我们不妨测试一下，自己建一个含有名为FTS_DOC_ID，类型不满足要求的列，不出意外报错：</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-fallback" data-lang="fallback">[42000][1166] Incorrect column name &#39;FTS_DOC_ID&#39;.
+</code></pre></td></tr></table>
+</div>
+</div><p>我们当然可以手动创建这一列（只要满足类型要求），如果没有手动创建，InnoDB也会为我们自动生成。</p>
+<p>此外，在对文档中的分词进行删除时，InnoDB将不会删除辅助表中的记录，而是只删除FTS Index Cache中的记录，并且将被删除记录的FTS_DOC_ID保存在DELETED auxiliary table中。至于为什么不删除，官方文档做了很好的解释：</p>
+<p><img src="/p/%E5%85%A8%E6%96%87%E7%B4%A2%E5%BC%95%E8%AF%A6%E8%A7%A3%E5%9F%BA%E4%BA%8Einnodb%E5%BC%95%E6%93%8E/ftindex.png"
+	width="2360"
+	height="422"
+	srcset="/p/%E5%85%A8%E6%96%87%E7%B4%A2%E5%BC%95%E8%AF%A6%E8%A7%A3%E5%9F%BA%E4%BA%8Einnodb%E5%BC%95%E6%93%8E/ftindex_hucb4517e2464f1b3a73a8c3833b3e3350_253752_480x0_resize_box_3.png 480w, /p/%E5%85%A8%E6%96%87%E7%B4%A2%E5%BC%95%E8%AF%A6%E8%A7%A3%E5%9F%BA%E4%BA%8Einnodb%E5%BC%95%E6%93%8E/ftindex_hucb4517e2464f1b3a73a8c3833b3e3350_253752_1024x0_resize_box_3.png 1024w"
+	loading="lazy"
+	
+		alt="全文索引的删除"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="559"
+		data-flex-basis="1342px"
+	
+></p>
+<p>意思就是说对于全文索引进行删除时，会导致辅助表中非常多的细微的改动，也就影响了对于这些表的并发访问。 所以，不对表中数据做真实删改，而是通过将FTS_DOC_ID保存在DELETED auxiliary table中，很好的避免了这个问题。</p>
+<p>实际上，类似的“<strong>懒删除</strong>”策略在很多地方都有应用，例如Redis中，对于过期键删除采用的策略之一就是惰性删除；对于执行sdstrim之后的SDS也采用了惰性空间释放。</p>
+<p>当然，一直不删除，无效的数据始终堆积在辅助表中，会让表变得非常庞大，占据额外的空间。此时我们就可以通过</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-sql" data-lang="sql"><span class="n">OPTIMIZE</span><span class="w"> </span><span class="k">TABLE</span><span class="p">;</span><span class="w">
+</span></code></pre></td></tr></table>
+</div>
+</div><p>来进行删除操作。当然，OPTIMIZE TABLE还有别的一些功能，例如<strong>重新统计基数</strong>，由于和本文关系不大，这里就不展开了。</p>
+<h3 id="stopword-list">Stopword List</h3>
+<p>顾名思义，就是维护了一张表，对于表中的词（大多是没有太大意义的）不进行索引。具体的表在information_schema下的INNODB_FT_DEFAULT_STOPWORD。</p>
+<h3 id="其他限制">其他限制</h3>
+<p>书上还列举了当前InnoDB的全文检索的限制：</p>
+<ul>
+<li>每张表只能有一个全文检索的索引</li>
+<li>由多列组合而成的全文检索的索引列必须使用相同的字符集与排序规则</li>
+<li>不支持没有单词界定符（delimiter）的语言，如中文、日文、韩语等</li>
+</ul>
+<hr>
+<h2 id="使用全文检索">使用全文检索</h2>
+<p>InnoDB中，使用全文索引的进行检索的方式为：</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-sql" data-lang="sql"><span class="k">MATCH</span><span class="w"> </span><span class="p">(</span><span class="n">col1</span><span class="p">,</span><span class="w"> </span><span class="n">col2</span><span class="p">,</span><span class="w"> </span><span class="p">...)</span><span class="w"> </span><span class="n">AGAINST</span><span class="w"> </span><span class="p">(</span><span class="n">expr</span><span class="w"> </span><span class="p">[</span><span class="n">search_modifier</span><span class="p">]);</span><span class="w">
+</span></code></pre></td></tr></table>
+</div>
+</div><p>其中，MATCH指定需要查询的列，AGAINST指定查询方法，有以下三种。</p>
+<h3 id="natural-language">Natural Language</h3>
+<p>查询带有指定词的文档，例如查询新闻标题中带有“Covid”的行：</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-sql" data-lang="sql"><span class="k">SELECT</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="k">FROM</span><span class="w"> </span><span class="n">news</span><span class="w"> </span><span class="k">WHERE</span><span class="w"> </span><span class="k">MATCH</span><span class="w"> </span><span class="p">(</span><span class="n">topic</span><span class="p">)</span><span class="w"> </span><span class="n">AGAINST</span><span class="w"> </span><span class="p">(</span><span class="s1">&#39;Covid&#39;</span><span class="w"> </span><span class="k">IN</span><span class="w"> </span><span class="k">NATURAL</span><span class="w"> </span><span class="k">LANGUAGE</span><span class="w"> </span><span class="k">MODE</span><span class="p">);</span><span class="w">
+</span></code></pre></td></tr></table>
+</div>
+</div><p>这一种方法也是InnoDB默认的方法，因而可以简写：</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-sql" data-lang="sql"><span class="k">SELECT</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="k">FROM</span><span class="w"> </span><span class="n">news</span><span class="w"> </span><span class="k">WHERE</span><span class="w"> </span><span class="k">MATCH</span><span class="w"> </span><span class="p">(</span><span class="n">topic</span><span class="p">)</span><span class="w"> </span><span class="n">AGAINST</span><span class="w"> </span><span class="p">(</span><span class="s1">&#39;Covid&#39;</span><span class="p">);</span><span class="w">
+</span></code></pre></td></tr></table>
+</div>
+</div><p>查询返回的结果根据相关性进行降序排序。相关性是一个非负浮点数，计算依据于：</p>
+<ul>
+<li>word是否在文档中出现</li>
+<li>word在文档中出现的次数</li>
+<li>word在索引列中的数量</li>
+<li>多少个文档包含该word</li>
+</ul>
+<p>此外，查询的word长度也需要在[innodb_ft_min_token_size, innodb_ft_max_token_size]之间，默认值分别为3和84。</p>
+<h3 id="boolean">Boolean</h3>
+<p>Boolean模式会允许对查询的word进行符号拼接，规则如下：</p>
+<ul>
+<li>+ 表示该word必须存在；- 相反</li>
+<li>无操作符表示该word可选，如出现则相关性更高</li>
+<li>@distance表示查询的多个单词距离是否在distance之内，单位为字节</li>
+<li>&gt; 表示该word出现时增加相关性； &lt; 相反</li>
+<li>~ 表示该word出现时相关性为负</li>
+<li>* 表示以该单词开头的单词</li>
+<li>&quot; 表示短语</li>
+</ul>
+<p>例如查询新闻标题中带有“Covid”但没有“Today”的行：</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-sql" data-lang="sql"><span class="k">SELECT</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="k">FROM</span><span class="w"> </span><span class="n">news</span><span class="w"> </span><span class="k">WHERE</span><span class="w"> </span><span class="k">MATCH</span><span class="w"> </span><span class="p">(</span><span class="n">topic</span><span class="p">)</span><span class="w"> </span><span class="n">AGAINST</span><span class="w"> </span><span class="p">(</span><span class="s1">&#39;+Covid -Today&#39;</span><span class="w"> </span><span class="k">IN</span><span class="w"> </span><span class="nb">BOOLEAN</span><span class="w"> </span><span class="k">MODE</span><span class="p">);</span><span class="w">
+</span></code></pre></td></tr></table>
+</div>
+</div><h3 id="query-expansion">Query Expansion</h3>
+<p>查询扩展，我的理解是进行二次查询。当条件有限时比较有用。查询分为两个阶段：</p>
+<ol>
+<li>根据搜索的word进行全文索引查询</li>
+<li>根据第一阶段产生的分词，再进行一次全文索引的查询</li>
+</ol>
+<p>例如，先通过NATURAL LANGUAGE模式查询新闻标题中带有“Covid”的行：</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-sql" data-lang="sql"><span class="k">SELECT</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="k">FROM</span><span class="w"> </span><span class="n">news</span><span class="w"> </span><span class="k">WHERE</span><span class="w"> </span><span class="k">MATCH</span><span class="w"> </span><span class="p">(</span><span class="n">topic</span><span class="p">)</span><span class="w"> </span><span class="n">AGAINST</span><span class="w"> </span><span class="p">(</span><span class="s1">&#39;Covid&#39;</span><span class="w"> </span><span class="k">IN</span><span class="w"> </span><span class="k">NATURAL</span><span class="w"> </span><span class="k">LANGUAGE</span><span class="w"> </span><span class="k">MODE</span><span class="p">);</span><span class="w">
+</span></code></pre></td></tr></table>
+</div>
+</div><p>之后再使用QUERY EXPANSION进行查询，得到的结果就是与第一步结果相关的，而非仅仅满足条件的。</p>
+
+</section>
+
+
+    <footer class="article-footer">
+    
+    <section class="article-tags">
+        
+            <a href="/tags/innodb/">InnoDB</a>
+        
+            <a href="/tags/mysql/">MySQL</a>
+        
+    </section>
+
+
+    
+    <section class="article-copyright">
+        <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-copyright" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <circle cx="12" cy="12" r="9" />
+  <path d="M14.5 9a3.5 4 0 1 0 0 6" />
+</svg>
+
+
+
+        <span>Licensed under CC BY-NC-SA 4.0</span>
+    </section>
+    </footer>
+
+
+    
+        <link 
+                rel="stylesheet" 
+                href="https://cdn.jsdelivr.net/npm/katex@0.13.13/dist/katex.min.css"integrity="sha384-RZU/ijkSsFbcmivfdRBQDtwuwVqK7GMOw6IMvKyeWL2K5UAlyp6WonmB8m7Jd0Hn"crossorigin="anonymous"
+            ><script 
+                src="https://cdn.jsdelivr.net/npm/katex@0.13.13/dist/katex.min.js"integrity="sha384-pK1WpvzWVBQiP0/GjnvRxV4mOb0oxFuyRxJlk6vVw146n3egcN5C925NCP7a7BY8"crossorigin="anonymous"
+                defer
+                >
+            </script><script 
+                src="https://cdn.jsdelivr.net/npm/katex@0.13.13/dist/contrib/auto-render.min.js"integrity="sha384-vZTG03m&#43;2yp6N6BNi5iM4rW4oIwk5DfcNdFfxkk9ZWpDriOkXX8voJBFrAO7MpVl"crossorigin="anonymous"
+                defer
+                >
+            </script><script>
+    window.addEventListener("DOMContentLoaded", () => {
+        renderMathInElement(document.querySelector(`.article-content`), {
+            delimiters: [
+                { left: "$$", right: "$$", display: true },
+                { left: "$", right: "$", display: false },
+                { left: "\\(", right: "\\)", display: false },
+                { left: "\\[", right: "\\]", display: true }
+            ]
+        });})
+</script>
+    
+</article>
+
+    
+
+    
+
+<aside class="related-contents--wrapper">
+    <h2 class="section-title">Related contents</h2>
+    <div class="related-contents">
+        <div class="flex article-list--tile">
+            
+                
+<article class="">
+    <a href="/p/innodb_book_1/">
+        
+        
+
+        <div class="article-details">
+            <h2 class="article-title">《MySQL技术内幕》读书笔记（1）</h2>
+        </div>
+    </a>
+</article>
+            
+        </div>
+    </div>
+</aside>
+
+     
+    
+        
+    <div class="disqus-container">
+    <div id="disqus_thread"></div>
+<script type="application/javascript">
+    var disqus_config = function () {
+    
+    
+    
+    };
+    (function() {
+        if (["localhost", "127.0.0.1"].indexOf(window.location.hostname) != -1) {
+            document.getElementById('disqus_thread').innerHTML = 'Disqus comments not available by default when the website is previewed locally.';
+            return;
+        }
+        var d = document, s = d.createElement('script'); s.async = true;
+        s.src = '//' + "hugo-theme-stack" + '.disqus.com/embed.js';
+        s.setAttribute('data-timestamp', +new Date());
+        (d.head || d.body).appendChild(s);
+    })();
+</script>
+<noscript>Please enable JavaScript to view the <a href="https://disqus.com/?ref_noscript">comments powered by Disqus.</a></noscript>
+<a href="https://disqus.com" class="dsq-brlink">comments powered by <span class="logo-disqus">Disqus</span></a>
+</div>
+
+<style>
+    .disqus-container {
+        background-color: var(--card-background);
+        border-radius: var(--card-border-radius);
+        box-shadow: var(--shadow-l1);
+        padding: var(--card-padding);
+    }
+</style>
+
+<script>
+    window.addEventListener('onColorSchemeChange', (e) => {
+        if (DISQUS) {
+            DISQUS.reset({
+                reload: true
+            });
+        }
+    })
+</script>
+
+    
+
+    <footer class="site-footer">
+    <section class="copyright">
+        &copy; 
+        
+            2020 - 
+        
+        2022 耶宵夜
+    </section>
+    
+    <section class="powerby">
+        Built with <a href="https://gohugo.io/" target="_blank" rel="noopener">Hugo</a> <br />
+        Theme <b><a href="https://github.com/CaiJimmy/hugo-theme-stack" target="_blank" rel="noopener" data-version="3.9.0">Stack</a></b> designed by <a href="https://jimmycai.com" target="_blank" rel="noopener">Jimmy</a>
+    </section>
+</footer>
+
+
+    
+<div class="pswp" tabindex="-1" role="dialog" aria-hidden="true">
+
+    
+    <div class="pswp__bg"></div>
+
+    
+    <div class="pswp__scroll-wrap">
+
+        
+        <div class="pswp__container">
+            <div class="pswp__item"></div>
+            <div class="pswp__item"></div>
+            <div class="pswp__item"></div>
+        </div>
+
+        
+        <div class="pswp__ui pswp__ui--hidden">
+
+            <div class="pswp__top-bar">
+
+                
+
+                <div class="pswp__counter"></div>
+
+                <button class="pswp__button pswp__button--close" title="Close (Esc)"></button>
+
+                <button class="pswp__button pswp__button--share" title="Share"></button>
+
+                <button class="pswp__button pswp__button--fs" title="Toggle fullscreen"></button>
+
+                <button class="pswp__button pswp__button--zoom" title="Zoom in/out"></button>
+
+                
+                
+                <div class="pswp__preloader">
+                    <div class="pswp__preloader__icn">
+                        <div class="pswp__preloader__cut">
+                            <div class="pswp__preloader__donut"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="pswp__share-modal pswp__share-modal--hidden pswp__single-tap">
+                <div class="pswp__share-tooltip"></div>
+            </div>
+
+            <button class="pswp__button pswp__button--arrow--left" title="Previous (arrow left)">
+            </button>
+
+            <button class="pswp__button pswp__button--arrow--right" title="Next (arrow right)">
+            </button>
+
+            <div class="pswp__caption">
+                <div class="pswp__caption__center"></div>
+            </div>
+
+        </div>
+
+    </div>
+
+</div><script 
+                src="https://cdn.jsdelivr.net/npm/photoswipe@4.1.3/dist/photoswipe.min.js"integrity="sha256-ePwmChbbvXbsO02lbM3HoHbSHTHFAeChekF1xKJdleo="crossorigin="anonymous"
+                defer
+                >
+            </script><script 
+                src="https://cdn.jsdelivr.net/npm/photoswipe@4.1.3/dist/photoswipe-ui-default.min.js"integrity="sha256-UKkzOn/w1mBxRmLLGrSeyB4e1xbrp4xylgAWb3M42pU="crossorigin="anonymous"
+                defer
+                >
+            </script><link 
+                rel="stylesheet" 
+                href="https://cdn.jsdelivr.net/npm/photoswipe@4.1.3/dist/default-skin/default-skin.css"integrity="sha256-c0uckgykQ9v5k&#43;IqViZOZKc47Jn7KQil4/MP3ySA3F8="crossorigin="anonymous"
+            ><link 
+                rel="stylesheet" 
+                href="https://cdn.jsdelivr.net/npm/photoswipe@4.1.3/dist/photoswipe.css"integrity="sha256-SBLU4vv6CA6lHsZ1XyTdhyjJxCjPif/TRkjnsyGAGnE="crossorigin="anonymous"
+            >
+
+            </main>
+    <aside class="sidebar right-sidebar sticky">
+        
+            
+                
+    <section class="widget archives">
+        <div class="widget-icon">
+            <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-hash" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <line x1="5" y1="9" x2="19" y2="9" />
+  <line x1="5" y1="15" x2="19" y2="15" />
+  <line x1="11" y1="4" x2="7" y2="20" />
+  <line x1="17" y1="4" x2="13" y2="20" />
+</svg>
+
+
+
+        </div>
+        <h2 class="widget-title section-title">Table of contents</h2>
+        
+        <div class="widget--toc">
+            <nav id="TableOfContents">
+  <ol>
+    <li><a href="#为什么需要全文索引"><strong>为什么需要全文索引</strong></a></li>
+    <li><a href="#全文索引">全文索引</a>
+      <ol>
+        <li><a href="#定义">定义</a></li>
+        <li><a href="#inverted-index倒排索引">Inverted Index（倒排索引）</a></li>
+      </ol>
+    </li>
+    <li><a href="#innodb的实现">InnoDB的实现</a>
+      <ol>
+        <li><a href="#auxiliary-table辅助表">Auxiliary Table（辅助表）</a></li>
+        <li><a href="#fts-index-cache全文检索索引缓存">FTS Index Cache（全文检索索引缓存）</a>
+          <ol>
+            <li><a href="#为什么是红黑树">为什么是红黑树？</a></li>
+            <li><a href="#和change-buffer对比">和Change Buffer对比</a></li>
+          </ol>
+        </li>
+        <li><a href="#fts-document-id">FTS Document ID</a></li>
+        <li><a href="#stopword-list">Stopword List</a></li>
+        <li><a href="#其他限制">其他限制</a></li>
+      </ol>
+    </li>
+    <li><a href="#使用全文检索">使用全文检索</a>
+      <ol>
+        <li><a href="#natural-language">Natural Language</a></li>
+        <li><a href="#boolean">Boolean</a></li>
+        <li><a href="#query-expansion">Query Expansion</a></li>
+      </ol>
+    </li>
+  </ol>
+</nav>
+        </div>
+    </section>
+
+            
+        
+    </aside>
+
+
+        </div>
+        <script 
+                src="https://cdn.jsdelivr.net/npm/node-vibrant@3.1.5/dist/vibrant.min.js"integrity="sha256-5NovOZc4iwiAWTYIFiIM7DxKUXKWvpVEuMEPLzcm5/g="crossorigin="anonymous"
+                
+                >
+            </script><script type="text/javascript" src="/ts/main.js" defer></script>
+<script>
+    (function () {
+        const customFont = document.createElement('link');
+        customFont.href = "https://fonts.googleapis.com/css2?family=Lato:wght@300;400;700&display=swap";
+
+        customFont.type = "text/css";
+        customFont.rel = "stylesheet";
+
+        document.head.appendChild(customFont);
+    }());
+</script>
+
+    </body>
+</html>
