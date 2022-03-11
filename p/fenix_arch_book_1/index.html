@@ -1,0 +1,641 @@
+<!DOCTYPE html>
+<html lang="en-us" dir="ltr">
+    <head><meta charset='utf-8'>
+<meta name='viewport' content='width=device-width, initial-scale=1'><meta name='description' content='第1章 服务架构演进史  架构并不是被发明出来的，而是持续演进的结果
+ 2 Pizza Team: 衡量团队大小的量词，指两个Pizza能喂饱的人数，挺有意思
+ 单体系统的真正缺陷不在如何拆分，而在拆分之后的自治与隔离能力上。由于所有代码都运行在同一个进程内，所有模块、方法的调用都无须考虑网络分区、对象复制这些麻烦的事。
+但在获得进程内调用的简单和高效的同时，也意味着一部分代码出现了缺陷，将会过度消耗进程空间内的资源，造成的影响也会是全局性、难以隔离的，例如内存泄漏、线程爆炸、阻塞、死循环等问题。如果出现问题的是某些更高层次的公共资源，例如端口号和数据库连接池泄漏，还会影响整台机器，乃至集群中其他单体副本的正常工作。
+ SOA: Service-Oriented Architecture，面向服务架构，三种代表性的架构模式：
+ 烟囱式架构（信息孤岛） 微内核架构（插件式架构） 事件驱动架构  SOAP协议被边缘化的本质原因：过于严格的规范定义带来过度复杂性
+&amp;ndash;&amp;gt; ==我的理解==：和OSI7层模型很像，是一种很好的思想，但实际中用到的往往是简化版的，例如5层，TCP/IP协议簇的4层
+ 微服务的概念：
+ 微服务是一种通过多个小型服务组合来构建单个应用的架构风格，这些服务围绕业务能力而非特定的技术标准来构建。各个服务可以采用不同的编程语言、不同的存储技术，运行在不同的进程之中。服务采用轻量级的通信机制和自动化的部署机制实现通信与运维。
+ “微服务时代充满着自由的气息，微服务时代充斥着迷茫的选择。”
+ 服务网格(Service Mesh)的边车代理模式(Sidecar Proxy)
+在虚拟化场景中的边车指，由系统自动在服务容器（通常是k8s的pod）中注入一个通信代理服务器，以类似中间人攻击的方式进行流量劫持，在应用无感知的情况下接管通信。
+这个代理除了实现正常的服务通信外（称为数据平面通信），还接收来自控制器的指令（控制平面通信），根据控制平面中的配置，对数据平面通信的内容进行分析处理，从而实现熔断、认证、度量、监控、负载均衡等各种附加功能。
+通过边车代理模式，既不需要在应用层加入额外的处理代码，也提供了几乎不亚于程序代码的精细管理能力。
+ Serverless的两大内容
+ 后端设施(Backend)  指数据库、消息队列、日志、存储等这类用于支撑业务逻辑运行，但本身无业务含义的技术组件
+这些后端设施都运行在云中，在serverless中称为Baas(Backend as a Service)
+函数(Function)  指业务逻辑代码，很接近程序编码角度的函数，区别在于serverless中的函数运行在云端，不必考虑算力和容量规划，称为FaaS(Function ..)
+无服务架构确实能降低一些应用的开发和运维成本，例如不需要交互的离线大规模计算，或者Web资讯类网站、小程序、公共API服务、移动应用服务端等契合于无服务架构所擅长的短链接、无状态、适合事件驱动的交互方式。
+但另一方面，对于诸如信息管理系统、网络游戏等，或说对具有业务逻辑复杂、依赖服务端状态、响应速度要求较高、需要长链接等特征的应用，至少目前不是那么合适。
+  如果说微服务架构是分布式系统这条路当前所能做到的极致，那无服务架构，也许就是“不分布式”的云端系统这条路的起点。
+  软件开发的最大挑战就在于只能在不完备的信息下决定当前要处理的问题。
+  We can only see a short distance ahead, but we can see plenty there that needs to be done.'><title>《凤凰架构》读书笔记（1）</title>
+
+<link rel='canonical' href='https://example.com/p/fenix_arch_book_1/'>
+
+<link rel="stylesheet" href="/scss/style.min.b80bf249ce4a22cf55e8d7340a0b37a2f2c10f54f3a9a49cb94b694a2eb0bbea.css"><meta property='og:title' content='《凤凰架构》读书笔记（1）'>
+<meta property='og:description' content='第1章 服务架构演进史  架构并不是被发明出来的，而是持续演进的结果
+ 2 Pizza Team: 衡量团队大小的量词，指两个Pizza能喂饱的人数，挺有意思
+ 单体系统的真正缺陷不在如何拆分，而在拆分之后的自治与隔离能力上。由于所有代码都运行在同一个进程内，所有模块、方法的调用都无须考虑网络分区、对象复制这些麻烦的事。
+但在获得进程内调用的简单和高效的同时，也意味着一部分代码出现了缺陷，将会过度消耗进程空间内的资源，造成的影响也会是全局性、难以隔离的，例如内存泄漏、线程爆炸、阻塞、死循环等问题。如果出现问题的是某些更高层次的公共资源，例如端口号和数据库连接池泄漏，还会影响整台机器，乃至集群中其他单体副本的正常工作。
+ SOA: Service-Oriented Architecture，面向服务架构，三种代表性的架构模式：
+ 烟囱式架构（信息孤岛） 微内核架构（插件式架构） 事件驱动架构  SOAP协议被边缘化的本质原因：过于严格的规范定义带来过度复杂性
+&amp;ndash;&amp;gt; ==我的理解==：和OSI7层模型很像，是一种很好的思想，但实际中用到的往往是简化版的，例如5层，TCP/IP协议簇的4层
+ 微服务的概念：
+ 微服务是一种通过多个小型服务组合来构建单个应用的架构风格，这些服务围绕业务能力而非特定的技术标准来构建。各个服务可以采用不同的编程语言、不同的存储技术，运行在不同的进程之中。服务采用轻量级的通信机制和自动化的部署机制实现通信与运维。
+ “微服务时代充满着自由的气息，微服务时代充斥着迷茫的选择。”
+ 服务网格(Service Mesh)的边车代理模式(Sidecar Proxy)
+在虚拟化场景中的边车指，由系统自动在服务容器（通常是k8s的pod）中注入一个通信代理服务器，以类似中间人攻击的方式进行流量劫持，在应用无感知的情况下接管通信。
+这个代理除了实现正常的服务通信外（称为数据平面通信），还接收来自控制器的指令（控制平面通信），根据控制平面中的配置，对数据平面通信的内容进行分析处理，从而实现熔断、认证、度量、监控、负载均衡等各种附加功能。
+通过边车代理模式，既不需要在应用层加入额外的处理代码，也提供了几乎不亚于程序代码的精细管理能力。
+ Serverless的两大内容
+ 后端设施(Backend)  指数据库、消息队列、日志、存储等这类用于支撑业务逻辑运行，但本身无业务含义的技术组件
+这些后端设施都运行在云中，在serverless中称为Baas(Backend as a Service)
+函数(Function)  指业务逻辑代码，很接近程序编码角度的函数，区别在于serverless中的函数运行在云端，不必考虑算力和容量规划，称为FaaS(Function ..)
+无服务架构确实能降低一些应用的开发和运维成本，例如不需要交互的离线大规模计算，或者Web资讯类网站、小程序、公共API服务、移动应用服务端等契合于无服务架构所擅长的短链接、无状态、适合事件驱动的交互方式。
+但另一方面，对于诸如信息管理系统、网络游戏等，或说对具有业务逻辑复杂、依赖服务端状态、响应速度要求较高、需要长链接等特征的应用，至少目前不是那么合适。
+  如果说微服务架构是分布式系统这条路当前所能做到的极致，那无服务架构，也许就是“不分布式”的云端系统这条路的起点。
+  软件开发的最大挑战就在于只能在不完备的信息下决定当前要处理的问题。
+  We can only see a short distance ahead, but we can see plenty there that needs to be done.'>
+<meta property='og:url' content='https://example.com/p/fenix_arch_book_1/'>
+<meta property='og:site_name' content='耶宵夜'>
+<meta property='og:type' content='article'><meta property='article:section' content='Post' /><meta property='article:tag' content='分布式' /><meta property='article:tag' content='服务架构' /><meta property='article:published_time' content='2022-03-11T15:07:15&#43;08:00'/><meta property='article:modified_time' content='2022-03-11T15:07:15&#43;08:00'/>
+<meta name="twitter:title" content="《凤凰架构》读书笔记（1）">
+<meta name="twitter:description" content="第1章 服务架构演进史  架构并不是被发明出来的，而是持续演进的结果
+ 2 Pizza Team: 衡量团队大小的量词，指两个Pizza能喂饱的人数，挺有意思
+ 单体系统的真正缺陷不在如何拆分，而在拆分之后的自治与隔离能力上。由于所有代码都运行在同一个进程内，所有模块、方法的调用都无须考虑网络分区、对象复制这些麻烦的事。
+但在获得进程内调用的简单和高效的同时，也意味着一部分代码出现了缺陷，将会过度消耗进程空间内的资源，造成的影响也会是全局性、难以隔离的，例如内存泄漏、线程爆炸、阻塞、死循环等问题。如果出现问题的是某些更高层次的公共资源，例如端口号和数据库连接池泄漏，还会影响整台机器，乃至集群中其他单体副本的正常工作。
+ SOA: Service-Oriented Architecture，面向服务架构，三种代表性的架构模式：
+ 烟囱式架构（信息孤岛） 微内核架构（插件式架构） 事件驱动架构  SOAP协议被边缘化的本质原因：过于严格的规范定义带来过度复杂性
+&amp;ndash;&amp;gt; ==我的理解==：和OSI7层模型很像，是一种很好的思想，但实际中用到的往往是简化版的，例如5层，TCP/IP协议簇的4层
+ 微服务的概念：
+ 微服务是一种通过多个小型服务组合来构建单个应用的架构风格，这些服务围绕业务能力而非特定的技术标准来构建。各个服务可以采用不同的编程语言、不同的存储技术，运行在不同的进程之中。服务采用轻量级的通信机制和自动化的部署机制实现通信与运维。
+ “微服务时代充满着自由的气息，微服务时代充斥着迷茫的选择。”
+ 服务网格(Service Mesh)的边车代理模式(Sidecar Proxy)
+在虚拟化场景中的边车指，由系统自动在服务容器（通常是k8s的pod）中注入一个通信代理服务器，以类似中间人攻击的方式进行流量劫持，在应用无感知的情况下接管通信。
+这个代理除了实现正常的服务通信外（称为数据平面通信），还接收来自控制器的指令（控制平面通信），根据控制平面中的配置，对数据平面通信的内容进行分析处理，从而实现熔断、认证、度量、监控、负载均衡等各种附加功能。
+通过边车代理模式，既不需要在应用层加入额外的处理代码，也提供了几乎不亚于程序代码的精细管理能力。
+ Serverless的两大内容
+ 后端设施(Backend)  指数据库、消息队列、日志、存储等这类用于支撑业务逻辑运行，但本身无业务含义的技术组件
+这些后端设施都运行在云中，在serverless中称为Baas(Backend as a Service)
+函数(Function)  指业务逻辑代码，很接近程序编码角度的函数，区别在于serverless中的函数运行在云端，不必考虑算力和容量规划，称为FaaS(Function ..)
+无服务架构确实能降低一些应用的开发和运维成本，例如不需要交互的离线大规模计算，或者Web资讯类网站、小程序、公共API服务、移动应用服务端等契合于无服务架构所擅长的短链接、无状态、适合事件驱动的交互方式。
+但另一方面，对于诸如信息管理系统、网络游戏等，或说对具有业务逻辑复杂、依赖服务端状态、响应速度要求较高、需要长链接等特征的应用，至少目前不是那么合适。
+  如果说微服务架构是分布式系统这条路当前所能做到的极致，那无服务架构，也许就是“不分布式”的云端系统这条路的起点。
+  软件开发的最大挑战就在于只能在不完备的信息下决定当前要处理的问题。
+  We can only see a short distance ahead, but we can see plenty there that needs to be done.">
+    <link rel="shortcut icon" href="icons/castle.svg" />
+
+    </head>
+    <body class="
+    article-page
+    ">
+    <script>
+        (function() {
+            const colorSchemeKey = 'StackColorScheme';
+            if(!localStorage.getItem(colorSchemeKey)){
+                localStorage.setItem(colorSchemeKey, "auto");
+            }
+        })();
+    </script><script>
+    (function() {
+        const colorSchemeKey = 'StackColorScheme';
+        const colorSchemeItem = localStorage.getItem(colorSchemeKey);
+        const supportDarkMode = window.matchMedia('(prefers-color-scheme: dark)').matches === true;
+
+        if (colorSchemeItem == 'dark' || colorSchemeItem === 'auto' && supportDarkMode) {
+            
+
+            document.documentElement.dataset.scheme = 'dark';
+        } else {
+            document.documentElement.dataset.scheme = 'light';
+        }
+    })();
+</script>
+<div class="container main-container flex on-phone--column extended"><aside class="sidebar left-sidebar sticky ">
+    <button class="hamburger hamburger--spin" type="button" id="toggle-menu" aria-label="Toggle Menu">
+        <span class="hamburger-box">
+            <span class="hamburger-inner"></span>
+        </span>
+    </button>
+
+    <header>
+        
+            
+            <figure class="site-avatar">
+                <a href="/">
+                
+                    
+                    
+                    
+                        
+                        <img src="/img/yeahxy_hu49da789840988e7b71825591d19947e9_110231_300x0_resize_box_3.png" width="300"
+                            height="300" class="site-logo" loading="lazy" alt="Avatar">
+                    
+                
+                </a>
+                
+                    <span class="emoji">😷</span>
+                
+            </figure>
+            
+        
+        
+        <div class="site-meta">
+            <h1 class="site-name"><a href="/">耶宵夜</a></h1>
+            <h2 class="site-description">Amazing things happen.</h2>
+        </div>
+    </header><ol class="social-menu">
+            
+                <li>
+                    <a 
+                        href='https://github.com/OxOtn3'
+                        target="_blank"
+                        title="GitHub"
+                    >
+                        
+                        
+                            <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-brand-github" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z" fill="none"/>
+  <path d="M9 19c-4.3 1.4 -4.3 -2.5 -6 -3m12 5v-3.5c0 -1 .1 -1.4 -.5 -2c2.8 -.3 5.5 -1.4 5.5 -6a4.6 4.6 0 0 0 -1.3 -3.2a4.2 4.2 0 0 0 -.1 -3.2s-1.1 -.3 -3.5 1.3a12.3 12.3 0 0 0 -6.2 0c-2.4 -1.6 -3.5 -1.3 -3.5 -1.3a4.2 4.2 0 0 0 -.1 3.2a4.6 4.6 0 0 0 -1.3 3.2c0 4.6 2.7 5.7 5.5 6c-.6 .6 -.6 1.2 -.5 2v3.5" />
+</svg>
+
+
+
+                        
+                    </a>
+                </li>
+            
+                <li>
+                    <a 
+                        href='https://twitter.com'
+                        target="_blank"
+                        title="Twitter"
+                    >
+                        
+                        
+                            <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-brand-twitter" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z" fill="none"/>
+  <path d="M22 4.01c-1 .49 -1.98 .689 -3 .99c-1.121 -1.265 -2.783 -1.335 -4.38 -.737s-2.643 2.06 -2.62 3.737v1c-3.245 .083 -6.135 -1.395 -8 -4c0 0 -4.182 7.433 4 11c-1.872 1.247 -3.739 2.088 -6 2c3.308 1.803 6.913 2.423 10.034 1.517c3.58 -1.04 6.522 -3.723 7.651 -7.742a13.84 13.84 0 0 0 .497 -3.753c-.002 -.249 1.51 -2.772 1.818 -4.013z" />
+</svg>
+
+
+
+                        
+                    </a>
+                </li>
+            
+        </ol><ol class="menu" id="main-menu">
+        
+        
+
+        <div class="menu-bottom-section">
+                <li id="i18n-switch">  
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-language" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z" fill="none"/>
+  <path d="M4 5h7" />
+  <path d="M9 3v2c0 4.418 -2.239 8 -5 8" />
+  <path d="M5 9c-.003 2.144 2.952 3.908 6.7 4" />
+  <path d="M12 20l4 -9l4 9" />
+  <path d="M19.1 18h-6.2" />
+</svg>
+
+
+
+                    <select name="language" onchange="window.location.href = this.selectedOptions[0].value">
+                        
+                            <option value="https://example.com/" selected>English</option>
+                        
+                            <option value="https://example.com/cn/" >中文</option>
+                        
+                            <option value="https://example.com/ar/" >عربي</option>
+                        
+                    </select>
+                </li>
+            
+            
+            
+                <li id="dark-mode-toggle">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-toggle-left" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <circle cx="8" cy="12" r="2" />
+  <rect x="2" y="6" width="20" height="12" rx="6" />
+</svg>
+
+
+
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-toggle-right" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <circle cx="16" cy="12" r="2" />
+  <rect x="2" y="6" width="20" height="12" rx="6" />
+</svg>
+
+
+
+                    <span>Dark Mode</span>
+                </li>
+            
+        </div>
+    </ol>
+</aside>
+<main class="main full-width">
+    <article class="main-article">
+    <header class="article-header">
+
+    <div class="article-details">
+    
+    <header class="article-category">
+        
+            <a href="/categories/%E8%AF%BB%E4%B9%A6%E7%AC%94%E8%AE%B0/" >
+                读书笔记
+            </a>
+        
+    </header>
+    
+
+    <div class="article-title-wrapper">
+        <h2 class="article-title">
+            <a href="/p/fenix_arch_book_1/">《凤凰架构》读书笔记（1）</a>
+        </h2>
+    
+        
+    </div>
+
+    
+    <footer class="article-time">
+        
+            <div>
+                <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-calendar-time" width="56" height="56" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <path d="M11.795 21h-6.795a2 2 0 0 1 -2 -2v-12a2 2 0 0 1 2 -2h12a2 2 0 0 1 2 2v4" />
+  <circle cx="18" cy="18" r="4" />
+  <path d="M15 3v4" />
+  <path d="M7 3v4" />
+  <path d="M3 11h16" />
+  <path d="M18 16.496v1.504l1 1" />
+</svg>
+                <time class="article-time--published">Mar 11, 2022</time>
+            </div>
+        
+
+        
+            <div>
+                <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-clock" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <circle cx="12" cy="12" r="9" />
+  <polyline points="12 7 12 12 15 15" />
+</svg>
+
+
+
+                <time class="article-time--reading">
+                    1 minute read
+                </time>
+            </div>
+        
+    </footer>
+    
+
+    
+</div>
+</header>
+
+    <section class="article-content">
+    
+    
+    <h2 id="第1章-服务架构演进史">第1章 服务架构演进史</h2>
+<blockquote>
+<p>架构并不是被发明出来的，而是持续演进的结果</p>
+</blockquote>
+<p><code>2 Pizza Team</code>: 衡量团队大小的量词，指两个Pizza能喂饱的人数，挺有意思</p>
+<hr>
+<p>单体系统的真正缺陷不在如何拆分，而在<strong>拆分之后的自治与隔离能力</strong>上。由于所有代码都运行在同一个进程内，所有模块、方法的调用都无须考虑<strong>网络分区</strong>、<strong>对象复制</strong>这些麻烦的事。</p>
+<p>但在获得进程内调用的简单和高效的同时，也意味着一部分代码出现了缺陷，将会过度消耗进程空间内的资源，造成的影响也会是全局性、难以隔离的，例如<strong>内存泄漏</strong>、<strong>线程爆炸</strong>、<strong>阻塞</strong>、<strong>死循环</strong>等问题。如果出现问题的是某些更高层次的公共资源，例如端口号和数据库连接池泄漏，还会影响整台机器，乃至集群中其他单体副本的正常工作。</p>
+<hr>
+<p><code>SOA</code>: Service-Oriented Architecture，面向服务架构，三种代表性的架构模式：</p>
+<ul>
+<li>烟囱式架构（信息孤岛）</li>
+<li>微内核架构（插件式架构）</li>
+<li>事件驱动架构</li>
+</ul>
+<p>SOAP协议被边缘化的本质原因：<strong>过于严格的规范定义带来过度复杂性</strong></p>
+<p>&ndash;&gt; ==我的理解==：和OSI7层模型很像，是一种很好的思想，但实际中用到的往往是简化版的，例如5层，TCP/IP协议簇的4层</p>
+<hr>
+<p>微服务的概念：</p>
+<blockquote>
+<p>微服务是一种通过多个小型服务组合来构建单个应用的架构风格，这些服务围绕业务能力而非特定的技术标准来构建。各个服务可以采用不同的编程语言、不同的存储技术，运行在不同的进程之中。服务采用轻量级的通信机制和自动化的部署机制实现通信与运维。</p>
+</blockquote>
+<p>“微服务时代充满着自由的气息，微服务时代充斥着迷茫的选择。”</p>
+<hr>
+<p><strong>服务网格</strong>(Service Mesh)的<strong>边车代理模式</strong>(Sidecar Proxy)</p>
+<p><img src="/p/fenix_arch_book_1/sidecar_proxy.png"
+	width="1622"
+	height="952"
+	srcset="/p/fenix_arch_book_1/sidecar_proxy_hu099d5a05ea85ba71ecf5339ce342528d_363902_480x0_resize_box_3.png 480w, /p/fenix_arch_book_1/sidecar_proxy_hu099d5a05ea85ba71ecf5339ce342528d_363902_1024x0_resize_box_3.png 1024w"
+	loading="lazy"
+	
+		alt="边车代理"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="170"
+		data-flex-basis="408px"
+	
+></p>
+<p>在虚拟化场景中的边车指，由系统自动在服务容器（通常是k8s的pod）中注入一个<strong>通信代理服务器</strong>，以类似中间人攻击的方式进行流量劫持，在应用无感知的情况下接管通信。</p>
+<p>这个代理除了实现正常的服务通信外（称为数据平面通信），还接收来自控制器的指令（控制平面通信），根据控制平面中的配置，对数据平面通信的内容进行分析处理，从而实现熔断、认证、度量、监控、负载均衡等各种附加功能。</p>
+<p>通过边车代理模式，既不需要在应用层加入额外的处理代码，也提供了几乎不亚于程序代码的精细管理能力。</p>
+<hr>
+<p><strong>Serverless的两大内容</strong></p>
+<ol>
+<li><strong>后端设施</strong>(Backend)</li>
+</ol>
+<p>指数据库、消息队列、日志、存储等这类用于支撑业务逻辑运行，但本身无业务含义的技术组件</p>
+<p>这些后端设施都运行在云中，在serverless中称为Baas(Backend as a Service)</p>
+<ol start="2">
+<li><strong>函数</strong>(Function)</li>
+</ol>
+<p>指业务逻辑代码，很接近程序编码角度的函数，区别在于serverless中的函数运行在云端，不必考虑算力和容量规划，称为FaaS(Function ..)</p>
+<p>无服务架构确实能降低一些应用的开发和运维成本，例如不需要交互的离线大规模计算，或者Web资讯类网站、小程序、公共API服务、移动应用服务端等契合于无服务架构所擅长的短链接、无状态、适合事件驱动的交互方式。</p>
+<p>但另一方面，对于诸如信息管理系统、网络游戏等，或说对具有业务逻辑复杂、依赖服务端状态、响应速度要求较高、需要长链接等特征的应用，至少目前不是那么合适。</p>
+<hr>
+<blockquote>
+<p><strong>如果说微服务架构是分布式系统这条路当前所能做到的极致，那无服务架构，也许就是“不分布式”的云端系统这条路的起点。</strong></p>
+</blockquote>
+<blockquote>
+<p>软件开发的最大挑战就在于只能在不完备的信息下决定当前要处理的问题。</p>
+</blockquote>
+<blockquote>
+<p>We can only see a short distance ahead, but we can see plenty there that needs to be done.</p>
+<p>&ndash;Alan Turing</p>
+</blockquote>
+
+</section>
+
+
+    <footer class="article-footer">
+    
+    <section class="article-tags">
+        
+            <a href="/tags/%E5%88%86%E5%B8%83%E5%BC%8F/">分布式</a>
+        
+            <a href="/tags/%E6%9C%8D%E5%8A%A1%E6%9E%B6%E6%9E%84/">服务架构</a>
+        
+    </section>
+
+
+    
+    <section class="article-copyright">
+        <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-copyright" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <circle cx="12" cy="12" r="9" />
+  <path d="M14.5 9a3.5 4 0 1 0 0 6" />
+</svg>
+
+
+
+        <span>Licensed under CC BY-NC-SA 4.0</span>
+    </section>
+    </footer>
+
+
+    
+        <link 
+                rel="stylesheet" 
+                href="https://cdn.jsdelivr.net/npm/katex@0.13.13/dist/katex.min.css"integrity="sha384-RZU/ijkSsFbcmivfdRBQDtwuwVqK7GMOw6IMvKyeWL2K5UAlyp6WonmB8m7Jd0Hn"crossorigin="anonymous"
+            ><script 
+                src="https://cdn.jsdelivr.net/npm/katex@0.13.13/dist/katex.min.js"integrity="sha384-pK1WpvzWVBQiP0/GjnvRxV4mOb0oxFuyRxJlk6vVw146n3egcN5C925NCP7a7BY8"crossorigin="anonymous"
+                defer
+                >
+            </script><script 
+                src="https://cdn.jsdelivr.net/npm/katex@0.13.13/dist/contrib/auto-render.min.js"integrity="sha384-vZTG03m&#43;2yp6N6BNi5iM4rW4oIwk5DfcNdFfxkk9ZWpDriOkXX8voJBFrAO7MpVl"crossorigin="anonymous"
+                defer
+                >
+            </script><script>
+    window.addEventListener("DOMContentLoaded", () => {
+        renderMathInElement(document.querySelector(`.article-content`), {
+            delimiters: [
+                { left: "$$", right: "$$", display: true },
+                { left: "$", right: "$", display: false },
+                { left: "\\(", right: "\\)", display: false },
+                { left: "\\[", right: "\\]", display: true }
+            ]
+        });})
+</script>
+    
+</article>
+
+    
+
+    
+
+<aside class="related-contents--wrapper">
+    <h2 class="section-title">Related contents</h2>
+    <div class="related-contents">
+        <div class="flex article-list--tile">
+            
+                
+<article class="">
+    <a href="/p/innodb_book_1/">
+        
+        
+
+        <div class="article-details">
+            <h2 class="article-title">《MySQL技术内幕》读书笔记（1）</h2>
+        </div>
+    </a>
+</article>
+            
+        </div>
+    </div>
+</aside>
+
+     
+    
+        
+    <div class="disqus-container">
+    <div id="disqus_thread"></div>
+<script type="application/javascript">
+    var disqus_config = function () {
+    
+    
+    
+    };
+    (function() {
+        if (["localhost", "127.0.0.1"].indexOf(window.location.hostname) != -1) {
+            document.getElementById('disqus_thread').innerHTML = 'Disqus comments not available by default when the website is previewed locally.';
+            return;
+        }
+        var d = document, s = d.createElement('script'); s.async = true;
+        s.src = '//' + "hugo-theme-stack" + '.disqus.com/embed.js';
+        s.setAttribute('data-timestamp', +new Date());
+        (d.head || d.body).appendChild(s);
+    })();
+</script>
+<noscript>Please enable JavaScript to view the <a href="https://disqus.com/?ref_noscript">comments powered by Disqus.</a></noscript>
+<a href="https://disqus.com" class="dsq-brlink">comments powered by <span class="logo-disqus">Disqus</span></a>
+</div>
+
+<style>
+    .disqus-container {
+        background-color: var(--card-background);
+        border-radius: var(--card-border-radius);
+        box-shadow: var(--shadow-l1);
+        padding: var(--card-padding);
+    }
+</style>
+
+<script>
+    window.addEventListener('onColorSchemeChange', (e) => {
+        if (DISQUS) {
+            DISQUS.reset({
+                reload: true
+            });
+        }
+    })
+</script>
+
+    
+
+    <footer class="site-footer">
+    <section class="copyright">
+        &copy; 
+        
+            2020 - 
+        
+        2022 耶宵夜
+    </section>
+    
+    <section class="powerby">
+        Built with <a href="https://gohugo.io/" target="_blank" rel="noopener">Hugo</a> <br />
+        Theme <b><a href="https://github.com/CaiJimmy/hugo-theme-stack" target="_blank" rel="noopener" data-version="3.9.0">Stack</a></b> designed by <a href="https://jimmycai.com" target="_blank" rel="noopener">Jimmy</a>
+    </section>
+</footer>
+
+
+    
+<div class="pswp" tabindex="-1" role="dialog" aria-hidden="true">
+
+    
+    <div class="pswp__bg"></div>
+
+    
+    <div class="pswp__scroll-wrap">
+
+        
+        <div class="pswp__container">
+            <div class="pswp__item"></div>
+            <div class="pswp__item"></div>
+            <div class="pswp__item"></div>
+        </div>
+
+        
+        <div class="pswp__ui pswp__ui--hidden">
+
+            <div class="pswp__top-bar">
+
+                
+
+                <div class="pswp__counter"></div>
+
+                <button class="pswp__button pswp__button--close" title="Close (Esc)"></button>
+
+                <button class="pswp__button pswp__button--share" title="Share"></button>
+
+                <button class="pswp__button pswp__button--fs" title="Toggle fullscreen"></button>
+
+                <button class="pswp__button pswp__button--zoom" title="Zoom in/out"></button>
+
+                
+                
+                <div class="pswp__preloader">
+                    <div class="pswp__preloader__icn">
+                        <div class="pswp__preloader__cut">
+                            <div class="pswp__preloader__donut"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="pswp__share-modal pswp__share-modal--hidden pswp__single-tap">
+                <div class="pswp__share-tooltip"></div>
+            </div>
+
+            <button class="pswp__button pswp__button--arrow--left" title="Previous (arrow left)">
+            </button>
+
+            <button class="pswp__button pswp__button--arrow--right" title="Next (arrow right)">
+            </button>
+
+            <div class="pswp__caption">
+                <div class="pswp__caption__center"></div>
+            </div>
+
+        </div>
+
+    </div>
+
+</div><script 
+                src="https://cdn.jsdelivr.net/npm/photoswipe@4.1.3/dist/photoswipe.min.js"integrity="sha256-ePwmChbbvXbsO02lbM3HoHbSHTHFAeChekF1xKJdleo="crossorigin="anonymous"
+                defer
+                >
+            </script><script 
+                src="https://cdn.jsdelivr.net/npm/photoswipe@4.1.3/dist/photoswipe-ui-default.min.js"integrity="sha256-UKkzOn/w1mBxRmLLGrSeyB4e1xbrp4xylgAWb3M42pU="crossorigin="anonymous"
+                defer
+                >
+            </script><link 
+                rel="stylesheet" 
+                href="https://cdn.jsdelivr.net/npm/photoswipe@4.1.3/dist/default-skin/default-skin.css"integrity="sha256-c0uckgykQ9v5k&#43;IqViZOZKc47Jn7KQil4/MP3ySA3F8="crossorigin="anonymous"
+            ><link 
+                rel="stylesheet" 
+                href="https://cdn.jsdelivr.net/npm/photoswipe@4.1.3/dist/photoswipe.css"integrity="sha256-SBLU4vv6CA6lHsZ1XyTdhyjJxCjPif/TRkjnsyGAGnE="crossorigin="anonymous"
+            >
+
+            </main>
+    <aside class="sidebar right-sidebar sticky">
+        
+            
+                
+    <section class="widget archives">
+        <div class="widget-icon">
+            <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-hash" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <line x1="5" y1="9" x2="19" y2="9" />
+  <line x1="5" y1="15" x2="19" y2="15" />
+  <line x1="11" y1="4" x2="7" y2="20" />
+  <line x1="17" y1="4" x2="13" y2="20" />
+</svg>
+
+
+
+        </div>
+        <h2 class="widget-title section-title">Table of contents</h2>
+        
+        <div class="widget--toc">
+            <nav id="TableOfContents">
+  <ol>
+    <li><a href="#第1章-服务架构演进史">第1章 服务架构演进史</a></li>
+  </ol>
+</nav>
+        </div>
+    </section>
+
+            
+        
+    </aside>
+
+
+        </div>
+        <script 
+                src="https://cdn.jsdelivr.net/npm/node-vibrant@3.1.5/dist/vibrant.min.js"integrity="sha256-5NovOZc4iwiAWTYIFiIM7DxKUXKWvpVEuMEPLzcm5/g="crossorigin="anonymous"
+                
+                >
+            </script><script type="text/javascript" src="/ts/main.js" defer></script>
+<script>
+    (function () {
+        const customFont = document.createElement('link');
+        customFont.href = "https://fonts.googleapis.com/css2?family=Lato:wght@300;400;700&display=swap";
+
+        customFont.type = "text/css";
+        customFont.rel = "stylesheet";
+
+        document.head.appendChild(customFont);
+    }());
+</script>
+
+    </body>
+</html>
