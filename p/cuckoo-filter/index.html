@@ -263,7 +263,20 @@ We propose a new data structure called the cuckoo filter that can replace Bloom 
 <h3 id="为什么叫cuckoo-filter">为什么叫Cuckoo Filter</h3>
 <p><code>Cuckoo</code> 的意思是 <code>布谷鸟</code> ，取这个名字其实跟他的算法实现有关。</p>
 <p>看一张论文里的图：</p>
-<p><!-- raw HTML omitted --></p>
+<p><img src="/p/cuckoo-filter/cuckoo_hashing.png"
+	width="1558"
+	height="606"
+	srcset="/p/cuckoo-filter/cuckoo_hashing_hu47387e887ccc95c3501cbfc7667701db_124475_480x0_resize_box_3.png 480w, /p/cuckoo-filter/cuckoo_hashing_hu47387e887ccc95c3501cbfc7667701db_124475_1024x0_resize_box_3.png 1024w"
+	loading="lazy"
+	
+		alt="Cuckoo Hashing"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="257"
+		data-flex-basis="617px"
+	
+></p>
 <p>可以看到每个item会有两个 <code>candidate buckets</code> ，如果有任意一个是空的，直接插入即可；如果都已经被占了，则会<strong>任意</strong>挑选出一个bucket，把其中的元素移出来，再将这个 <code>victim</code> 插入到其他可供选择的地方。</p>
 <p>这个过程会一直重复到能找到一个空的bucket，或者替换次数达到一个阈值（原文为500次）。</p>
 <p>尽管Cuckoo Hashing可能会引起一系列的替换，但是这个操作的均摊时间复杂度是O(1)。</p>
@@ -287,7 +300,20 @@ We propose a new data structure called the cuckoo filter that can replace Bloom 
 <p>主要是三部分：插入、查询和删除。</p>
 <h3 id="插入">插入</h3>
 <p>先看下原文的伪代码实现：</p>
-<p><!-- raw HTML omitted --></p>
+<p><img src="/p/cuckoo-filter/insert.png"
+	width="1036"
+	height="936"
+	srcset="/p/cuckoo-filter/insert_huafcab5030055f94c3e47a71edb150854_143137_480x0_resize_box_3.png 480w, /p/cuckoo-filter/insert_huafcab5030055f94c3e47a71edb150854_143137_1024x0_resize_box_3.png 1024w"
+	loading="lazy"
+	
+		alt="insert-伪代码"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="110"
+		data-flex-basis="265px"
+	
+></p>
 <p>需要注意的是，计算i2的时候用到了i1和hash(f)的异或，这是很方便也很有必要的，因为这样一来，就可以保证i1也可以用同样的方式通过i2和hash(f)计算得出。所以，当我们需要计算出当前bucket的备选bucket时，只需要根据当前bucket的下标i以及存在bucket中的fingerprint得到备选目标j，即：</p>
 <p>$$j = i\oplus hash(fingerprint)$$</p>
 <p>这样一来，每次插入实际上只用到了表内的信息，不需要追溯到原来的item。</p>
@@ -297,14 +323,53 @@ We propose a new data structure called the cuckoo filter that can replace Bloom 
 <p>并且也可以看到，通过 <code>partial-key</code> 的优化，现在每次冲突时计算备选空间地址，无论冲突了多少次，只需要根据fingerprint，还是很方便的。</p>
 <h3 id="查询">查询</h3>
 <p>伪代码：</p>
-<p><!-- raw HTML omitted --></p>
+<p><img src="/p/cuckoo-filter/lookup.png"
+	width="1022"
+	height="414"
+	srcset="/p/cuckoo-filter/lookup_hu60cb88140d1a98b7e3a322bbbbd5fd53_52523_480x0_resize_box_3.png 480w, /p/cuckoo-filter/lookup_hu60cb88140d1a98b7e3a322bbbbd5fd53_52523_1024x0_resize_box_3.png 1024w"
+	loading="lazy"
+	
+		alt="lookup-伪代码"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="246"
+		data-flex-basis="592px"
+	
+></p>
 <h3 id="删除">删除</h3>
 <p>伪代码：</p>
-<p><!-- raw HTML omitted --></p>
+<p><img src="/p/cuckoo-filter/delete.png"
+	width="1024"
+	height="446"
+	srcset="/p/cuckoo-filter/delete_hu071bd94d923ff16b665f3e678e2917cd_60911_480x0_resize_box_3.png 480w, /p/cuckoo-filter/delete_hu071bd94d923ff16b665f3e678e2917cd_60911_1024x0_resize_box_3.png 1024w"
+	loading="lazy"
+	
+		alt="delete-伪代码"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="229"
+		data-flex-basis="551px"
+	
+></p>
 <p>删除操作思路很简单，判断一下两个桶有没有相符的fingerprint，有就删除。这里的删除也不是真的把数据删除，而只是简单的标记一下。</p>
 <h2 id="效果">效果</h2>
 <p>简单的看下图：</p>
-<p><!-- raw HTML omitted --></p>
+<p><img src="/p/cuckoo-filter/load-factor.png"
+	width="2214"
+	height="1012"
+	srcset="/p/cuckoo-filter/load-factor_hu492471baf84afe3062376e79d1ee2c7b_315168_480x0_resize_box_3.png 480w, /p/cuckoo-filter/load-factor_hu492471baf84afe3062376e79d1ee2c7b_315168_1024x0_resize_box_3.png 1024w"
+	loading="lazy"
+	
+		alt="bucket size为4和8情况下 load factor和fingerprint size关系图"
+	
+	
+		class="gallery-image" 
+		data-flex-grow="218"
+		data-flex-basis="525px"
+	
+></p>
 <h2 id="总结">总结</h2>
 <p>这里就援引论文中的Conclusion：</p>
 <blockquote>

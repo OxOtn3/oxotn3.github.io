@@ -29,7 +29,20 @@
 &lt;h3 id=&#34;为什么叫cuckoo-filter&#34;&gt;为什么叫Cuckoo Filter&lt;/h3&gt;
 &lt;p&gt;&lt;code&gt;Cuckoo&lt;/code&gt; 的意思是 &lt;code&gt;布谷鸟&lt;/code&gt; ，取这个名字其实跟他的算法实现有关。&lt;/p&gt;
 &lt;p&gt;看一张论文里的图：&lt;/p&gt;
-&lt;p&gt;&lt;!-- raw HTML omitted --&gt;&lt;/p&gt;
+&lt;p&gt;&lt;img src=&#34;https://example.com/p/cuckoo-filter/cuckoo_hashing.png&#34;
+	width=&#34;1558&#34;
+	height=&#34;606&#34;
+	srcset=&#34;https://example.com/p/cuckoo-filter/cuckoo_hashing_hu47387e887ccc95c3501cbfc7667701db_124475_480x0_resize_box_3.png 480w, https://example.com/p/cuckoo-filter/cuckoo_hashing_hu47387e887ccc95c3501cbfc7667701db_124475_1024x0_resize_box_3.png 1024w&#34;
+	loading=&#34;lazy&#34;
+	
+		alt=&#34;Cuckoo Hashing&#34;
+	
+	
+		class=&#34;gallery-image&#34; 
+		data-flex-grow=&#34;257&#34;
+		data-flex-basis=&#34;617px&#34;
+	
+&gt;&lt;/p&gt;
 &lt;p&gt;可以看到每个item会有两个 &lt;code&gt;candidate buckets&lt;/code&gt; ，如果有任意一个是空的，直接插入即可；如果都已经被占了，则会&lt;strong&gt;任意&lt;/strong&gt;挑选出一个bucket，把其中的元素移出来，再将这个 &lt;code&gt;victim&lt;/code&gt; 插入到其他可供选择的地方。&lt;/p&gt;
 &lt;p&gt;这个过程会一直重复到能找到一个空的bucket，或者替换次数达到一个阈值（原文为500次）。&lt;/p&gt;
 &lt;p&gt;尽管Cuckoo Hashing可能会引起一系列的替换，但是这个操作的均摊时间复杂度是O(1)。&lt;/p&gt;
@@ -53,7 +66,20 @@
 &lt;p&gt;主要是三部分：插入、查询和删除。&lt;/p&gt;
 &lt;h3 id=&#34;插入&#34;&gt;插入&lt;/h3&gt;
 &lt;p&gt;先看下原文的伪代码实现：&lt;/p&gt;
-&lt;p&gt;&lt;!-- raw HTML omitted --&gt;&lt;/p&gt;
+&lt;p&gt;&lt;img src=&#34;https://example.com/p/cuckoo-filter/insert.png&#34;
+	width=&#34;1036&#34;
+	height=&#34;936&#34;
+	srcset=&#34;https://example.com/p/cuckoo-filter/insert_huafcab5030055f94c3e47a71edb150854_143137_480x0_resize_box_3.png 480w, https://example.com/p/cuckoo-filter/insert_huafcab5030055f94c3e47a71edb150854_143137_1024x0_resize_box_3.png 1024w&#34;
+	loading=&#34;lazy&#34;
+	
+		alt=&#34;insert-伪代码&#34;
+	
+	
+		class=&#34;gallery-image&#34; 
+		data-flex-grow=&#34;110&#34;
+		data-flex-basis=&#34;265px&#34;
+	
+&gt;&lt;/p&gt;
 &lt;p&gt;需要注意的是，计算i2的时候用到了i1和hash(f)的异或，这是很方便也很有必要的，因为这样一来，就可以保证i1也可以用同样的方式通过i2和hash(f)计算得出。所以，当我们需要计算出当前bucket的备选bucket时，只需要根据当前bucket的下标i以及存在bucket中的fingerprint得到备选目标j，即：&lt;/p&gt;
 &lt;p&gt;$$j = i\oplus hash(fingerprint)$$&lt;/p&gt;
 &lt;p&gt;这样一来，每次插入实际上只用到了表内的信息，不需要追溯到原来的item。&lt;/p&gt;
@@ -63,14 +89,53 @@
 &lt;p&gt;并且也可以看到，通过 &lt;code&gt;partial-key&lt;/code&gt; 的优化，现在每次冲突时计算备选空间地址，无论冲突了多少次，只需要根据fingerprint，还是很方便的。&lt;/p&gt;
 &lt;h3 id=&#34;查询&#34;&gt;查询&lt;/h3&gt;
 &lt;p&gt;伪代码：&lt;/p&gt;
-&lt;p&gt;&lt;!-- raw HTML omitted --&gt;&lt;/p&gt;
+&lt;p&gt;&lt;img src=&#34;https://example.com/p/cuckoo-filter/lookup.png&#34;
+	width=&#34;1022&#34;
+	height=&#34;414&#34;
+	srcset=&#34;https://example.com/p/cuckoo-filter/lookup_hu60cb88140d1a98b7e3a322bbbbd5fd53_52523_480x0_resize_box_3.png 480w, https://example.com/p/cuckoo-filter/lookup_hu60cb88140d1a98b7e3a322bbbbd5fd53_52523_1024x0_resize_box_3.png 1024w&#34;
+	loading=&#34;lazy&#34;
+	
+		alt=&#34;lookup-伪代码&#34;
+	
+	
+		class=&#34;gallery-image&#34; 
+		data-flex-grow=&#34;246&#34;
+		data-flex-basis=&#34;592px&#34;
+	
+&gt;&lt;/p&gt;
 &lt;h3 id=&#34;删除&#34;&gt;删除&lt;/h3&gt;
 &lt;p&gt;伪代码：&lt;/p&gt;
-&lt;p&gt;&lt;!-- raw HTML omitted --&gt;&lt;/p&gt;
+&lt;p&gt;&lt;img src=&#34;https://example.com/p/cuckoo-filter/delete.png&#34;
+	width=&#34;1024&#34;
+	height=&#34;446&#34;
+	srcset=&#34;https://example.com/p/cuckoo-filter/delete_hu071bd94d923ff16b665f3e678e2917cd_60911_480x0_resize_box_3.png 480w, https://example.com/p/cuckoo-filter/delete_hu071bd94d923ff16b665f3e678e2917cd_60911_1024x0_resize_box_3.png 1024w&#34;
+	loading=&#34;lazy&#34;
+	
+		alt=&#34;delete-伪代码&#34;
+	
+	
+		class=&#34;gallery-image&#34; 
+		data-flex-grow=&#34;229&#34;
+		data-flex-basis=&#34;551px&#34;
+	
+&gt;&lt;/p&gt;
 &lt;p&gt;删除操作思路很简单，判断一下两个桶有没有相符的fingerprint，有就删除。这里的删除也不是真的把数据删除，而只是简单的标记一下。&lt;/p&gt;
 &lt;h2 id=&#34;效果&#34;&gt;效果&lt;/h2&gt;
 &lt;p&gt;简单的看下图：&lt;/p&gt;
-&lt;p&gt;&lt;!-- raw HTML omitted --&gt;&lt;/p&gt;
+&lt;p&gt;&lt;img src=&#34;https://example.com/p/cuckoo-filter/load-factor.png&#34;
+	width=&#34;2214&#34;
+	height=&#34;1012&#34;
+	srcset=&#34;https://example.com/p/cuckoo-filter/load-factor_hu492471baf84afe3062376e79d1ee2c7b_315168_480x0_resize_box_3.png 480w, https://example.com/p/cuckoo-filter/load-factor_hu492471baf84afe3062376e79d1ee2c7b_315168_1024x0_resize_box_3.png 1024w&#34;
+	loading=&#34;lazy&#34;
+	
+		alt=&#34;bucket size为4和8情况下 load factor和fingerprint size关系图&#34;
+	
+	
+		class=&#34;gallery-image&#34; 
+		data-flex-grow=&#34;218&#34;
+		data-flex-basis=&#34;525px&#34;
+	
+&gt;&lt;/p&gt;
 &lt;h2 id=&#34;总结&#34;&gt;总结&lt;/h2&gt;
 &lt;p&gt;这里就援引论文中的Conclusion：&lt;/p&gt;
 &lt;blockquote&gt;
