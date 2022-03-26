@@ -6,7 +6,87 @@
         <description>Recent content in Posts on 耶宵夜</description>
         <generator>Hugo -- gohugo.io</generator>
         <language>en-us</language>
-        <lastBuildDate>Fri, 11 Mar 2022 15:07:15 +0800</lastBuildDate><atom:link href="https://example.com/post/index.xml" rel="self" type="application/rss+xml" /><item>
+        <lastBuildDate>Fri, 25 Mar 2022 22:19:50 +0800</lastBuildDate><atom:link href="https://example.com/post/index.xml" rel="self" type="application/rss+xml" /><item>
+        <title>Cuckoo Filter</title>
+        <link>https://example.com/p/cuckoo-filter/</link>
+        <pubDate>Fri, 25 Mar 2022 22:19:50 +0800</pubDate>
+        
+        <guid>https://example.com/p/cuckoo-filter/</guid>
+        <description>&lt;p&gt;&lt;em&gt;前言&lt;/em&gt;&lt;/p&gt;
+&lt;p&gt;&lt;em&gt;逛GitHub的时候看到了&lt;a class=&#34;link&#34; href=&#34;https://github.com/CDDSCLab/training-plan&#34;  target=&#34;_blank&#34; rel=&#34;noopener&#34;
+    &gt;这个repo&lt;/a&gt;，里面提到了Cuckoo Filter，没听说过，学习一下，顺便做个笔记持久化。&lt;/em&gt;&lt;/p&gt;
+&lt;h2 id=&#34;简介&#34;&gt;简介&lt;/h2&gt;
+&lt;p&gt;实际上源于2014年CMU的一篇论文：&lt;a class=&#34;link&#34; href=&#34;https://www.cs.cmu.edu/~dga/papers/cuckoo-conext2014.pdf&#34;  target=&#34;_blank&#34; rel=&#34;noopener&#34;
+    &gt;Cuckoo Filter: Practically Better Than Bloom&lt;/a&gt;，听名字就知道，和布隆过滤器类似。&lt;/p&gt;
+&lt;h3 id=&#34;什么是cuckoo-filter&#34;&gt;什么是Cuckoo Filter&lt;/h3&gt;
+&lt;p&gt;论文摘要：&lt;/p&gt;
+&lt;blockquote&gt;
+&lt;p&gt;In many networking systems, Bloom filters are used for highspeed set membership tests. They permit a small fraction of false positive answers with very good space efficiency. However, &lt;strong&gt;they do not permit deletion of items from the set&lt;/strong&gt;, and previous attempts to extend “standard” Bloom filters to support deletion all &lt;strong&gt;degrade either space or performance&lt;/strong&gt;.&lt;/p&gt;
+&lt;p&gt;We propose a new data structure called the &lt;strong&gt;cuckoo filter&lt;/strong&gt; that can replace Bloom filters for approximate set membership tests. Cuckoo filters &lt;strong&gt;support adding and removing items dynamically while achieving even higher performance&lt;/strong&gt; than Bloom filters. For applications that store many items and target moderately low false positive rates, cuckoo filters have lower space overhead than space-optimized Bloom filters. Our experimental results also show that cuckoo filters outperform previous data structures that extend Bloom filters to support deletions substantially in both time and space.&lt;/p&gt;
+&lt;/blockquote&gt;
+&lt;p&gt;简单来说就是解决了Bloom Filter不能删除，或者删除影响空间或时间上的性能的问题。Cuckoo Filter在解决这一问题的同时，还能够表现出更好的性能。（吹是这么吹的）&lt;/p&gt;
+&lt;p&gt;在合适的参数配置下，空间利用率可以达到95%。&lt;/p&gt;
+&lt;h3 id=&#34;为什么叫cuckoo-filter&#34;&gt;为什么叫Cuckoo Filter&lt;/h3&gt;
+&lt;p&gt;&lt;code&gt;Cuckoo&lt;/code&gt; 的意思是 &lt;code&gt;布谷鸟&lt;/code&gt; ，取这个名字其实跟他的算法实现有关。&lt;/p&gt;
+&lt;p&gt;看一张论文里的图：&lt;/p&gt;
+&lt;p&gt;&lt;!-- raw HTML omitted --&gt;&lt;/p&gt;
+&lt;p&gt;可以看到每个item会有两个 &lt;code&gt;candidate buckets&lt;/code&gt; ，如果有任意一个是空的，直接插入即可；如果都已经被占了，则会&lt;strong&gt;任意&lt;/strong&gt;挑选出一个bucket，把其中的元素移出来，再将这个 &lt;code&gt;victim&lt;/code&gt; 插入到其他可供选择的地方。&lt;/p&gt;
+&lt;p&gt;这个过程会一直重复到能找到一个空的bucket，或者替换次数达到一个阈值（原文为500次）。&lt;/p&gt;
+&lt;p&gt;尽管Cuckoo Hashing可能会引起一系列的替换，但是这个操作的均摊时间复杂度是O(1)。&lt;/p&gt;
+&lt;p&gt;回到名字上来，这个过程其实和布谷鸟下蛋很像。&lt;/p&gt;
+&lt;p&gt;布谷鸟会把蛋下到别的鸟的巢里，而布谷鸟的幼鸟比别的鸟出生的早，于是会将别的还没出生的鸟蛋挤出巢外，来保证自己今后能独享食物。&lt;/p&gt;
+&lt;p&gt;懂了之后就会感觉这个命名确实很生动，也让人不禁想到Kafka中一系列有趣的命名。计算机科学家还是很有意思的。&lt;/p&gt;
+&lt;p&gt;另外，(c) 图中展示的是优化过后的hash table，可以看到一个bucket中有4个entry，很大程度上减少了冲突几率。&lt;/p&gt;
+&lt;h2 id=&#34;优化&#34;&gt;优化&lt;/h2&gt;
+&lt;p&gt;如果只根据标准的Cuckoo hashing方法计算冲突时可选的空间，（原文中说）一个很容易想到的方法是：&lt;/p&gt;
+&lt;blockquote&gt;
+&lt;p&gt;store each inserted item in its entirety (perhaps externally to the table); given the original item (“key”), calculating its alternate location is easy&lt;/p&gt;
+&lt;/blockquote&gt;
+&lt;p&gt;我的理解就是，对于每一个插入的item，都维护一个变量（可以看作是这个item的entirety），这个变量记录了这个item所有可能的index值，然后再对key进行计算。重点在于维护这个变量需要的在hash table之外的&lt;strong&gt;额外空间&lt;/strong&gt;，会产生比较大的开销。&lt;/p&gt;
+&lt;p&gt;为了达到更好的空间上的效率，减少hash table以外的大小，提出了下面的优化。&lt;/p&gt;
+&lt;h3 id=&#34;partial-key-cuckoo-hashing&#34;&gt;partial-key cuckoo hashing&lt;/h3&gt;
+&lt;p&gt;每一个item都根据一个常数大小的 &lt;code&gt;fingerprint&lt;/code&gt; 进行hash。&lt;/p&gt;
+&lt;blockquote&gt;
+&lt;p&gt;为什么这个fingerprint也需要额外空间，刚才的entirety也需要额外空间，就算成优化了呢？其实很简单，因为fingerprint相较于entirety需要的空间开销更小，是常数级别的。并且在后面可以看到，对于大部分数据，4~5bit大小的fingerprint就能够达到非常好的空间占用率。而如果采用entirety，在下面的算法实现中可以看到，对于每一个bucket计算出备选bucket的index时，还需要回溯(retrieve)出该bucket的值，而采用fingerprint就可以避免这一操作。&lt;/p&gt;
+&lt;/blockquote&gt;
+&lt;h2 id=&#34;算法实现&#34;&gt;算法实现&lt;/h2&gt;
+&lt;p&gt;主要是三部分：插入、查询和删除。&lt;/p&gt;
+&lt;h3 id=&#34;插入&#34;&gt;插入&lt;/h3&gt;
+&lt;p&gt;先看下原文的伪代码实现：&lt;/p&gt;
+&lt;p&gt;&lt;!-- raw HTML omitted --&gt;&lt;/p&gt;
+&lt;p&gt;需要注意的是，计算i2的时候用到了i1和hash(f)的异或，这是很方便也很有必要的，因为这样一来，就可以保证i1也可以用同样的方式通过i2和hash(f)计算得出。所以，当我们需要计算出当前bucket的备选bucket时，只需要根据当前bucket的下标i以及存在bucket中的fingerprint得到备选目标j，即：&lt;/p&gt;
+&lt;p&gt;$$j = i\oplus hash(fingerprint)$$&lt;/p&gt;
+&lt;p&gt;这样一来，每次插入实际上只用到了表内的信息，不需要追溯到原来的item。&lt;/p&gt;
+&lt;p&gt;并且可以看到，在每次异或运算前对fingerprint进行hash而不是之后，目的也是为了减少冲突，否则如果先异或后hash，很容易落到临近的bucket中。&lt;/p&gt;
+&lt;p&gt;此外，如果两个或多个item具有相同的fingerprint，也是可以的，但有一个上限 &lt;code&gt;2b&lt;/code&gt; ，b为bucket的大小，此时这些重复的item的两个bucket将会变得超载。&lt;/p&gt;
+&lt;p&gt;循环中 &lt;code&gt;MaxNumKicks&lt;/code&gt; 其实就是最大重试次数，比如500次，如果超过这个次数还没有成功插入，就可以认为这个table满了。&lt;/p&gt;
+&lt;p&gt;并且也可以看到，通过 &lt;code&gt;partial-key&lt;/code&gt; 的优化，现在每次冲突时计算备选空间地址，无论冲突了多少次，只需要根据fingerprint，还是很方便的。&lt;/p&gt;
+&lt;h3 id=&#34;查询&#34;&gt;查询&lt;/h3&gt;
+&lt;p&gt;伪代码：&lt;/p&gt;
+&lt;p&gt;&lt;!-- raw HTML omitted --&gt;&lt;/p&gt;
+&lt;h3 id=&#34;删除&#34;&gt;删除&lt;/h3&gt;
+&lt;p&gt;伪代码：&lt;/p&gt;
+&lt;p&gt;&lt;!-- raw HTML omitted --&gt;&lt;/p&gt;
+&lt;p&gt;删除操作思路很简单，判断一下两个桶有没有相符的fingerprint，有就删除。这里的删除也不是真的把数据删除，而只是简单的标记一下。&lt;/p&gt;
+&lt;h2 id=&#34;效果&#34;&gt;效果&lt;/h2&gt;
+&lt;p&gt;简单的看下图：&lt;/p&gt;
+&lt;p&gt;&lt;!-- raw HTML omitted --&gt;&lt;/p&gt;
+&lt;h2 id=&#34;总结&#34;&gt;总结&lt;/h2&gt;
+&lt;p&gt;这里就援引论文中的Conclusion：&lt;/p&gt;
+&lt;blockquote&gt;
+&lt;p&gt;Cuckoo filters are a new data structure for approximate set membership queries that can be used for many networking problems formerly solved using Bloom filters. Cuckoo filters improve upon Bloom filters in three ways: (1) &lt;strong&gt;support for deleting items dynamically&lt;/strong&gt;; (2) &lt;strong&gt;better lookup performance&lt;/strong&gt;; and (3) &lt;strong&gt;better space efficiency for applications requiring low false positive rates&lt;/strong&gt; (&amp;lt; 3%). A cuckoo filter stores the fingerprints of a set of items based on cuckoo hashing, thus achieving high space occupancy. As a further key contribution, we have applied &lt;strong&gt;partial-key&lt;/strong&gt; cuckoo hashing, which makes cuckoo filters significantly more efficient by allowing relocation based on &lt;strong&gt;only the stored fingerprint&lt;/strong&gt;. Our configuration exploration suggests that the cuckoo filter, which uses buckets of size 4, will perform well for a wide range of applications, although appealingly cuckoo filter parameters can be easily varied for application-dependent tuning.&lt;/p&gt;
+&lt;p&gt;While we expect that further extensions and optimizations to cuckoo filters are possible and will further provide impetus for their use, the data structure as described is a fast and efficient building block already well-suited to the practical demands of networking and distributed systems.&lt;/p&gt;
+&lt;/blockquote&gt;
+&lt;p&gt;几个重点也都加粗了，主要是相比于Bloom Filter的三大优势：&lt;/p&gt;
+&lt;ol&gt;
+&lt;li&gt;支持动态删除&lt;/li&gt;
+&lt;li&gt;查询性能更好&lt;/li&gt;
+&lt;li&gt;空间效率更高&lt;/li&gt;
+&lt;/ol&gt;
+&lt;p&gt;并且经过 &lt;code&gt;partial-key&lt;/code&gt; 的优化，对于每一个item，只需要额外存储 &lt;code&gt;fingerprint&lt;/code&gt; 的值作为hash的依据，节省空间开销。&lt;/p&gt;
+</description>
+        </item>
+        <item>
         <title>《凤凰架构》读书笔记（1）</title>
         <link>https://example.com/p/fenix_arch_book_1/</link>
         <pubDate>Fri, 11 Mar 2022 15:07:15 +0800</pubDate>
