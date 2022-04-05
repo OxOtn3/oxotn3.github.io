@@ -1,0 +1,962 @@
+<!DOCTYPE html>
+<html lang="en-us" dir="ltr">
+    <head><meta charset='utf-8'>
+<meta name='viewport' content='width=device-width, initial-scale=1'><meta name='description' content='medium做多，hard做精，easy做稳
+—3.28 洗澡时有感
+ Content Graph   Dijkstra
+3.30 ~ 4.2
+  Topological Sort
+4.3 ~ 4.4
+  Common   Enumeration
+4.5
+  Binary Search
+  Segment Tree
+  String   Brute Force
+  KMP
+  DP  DP Greedy  3.28  475. 供暖器
+ 很像我字节二面的算法题
+排序&#43;二分遍历能过
+3.29  1004.最大连续1的个数 III
+  2024.考试的最大困扰度
+ 两道一样的滑动窗口
+ 1697.检查边长度限制的路径是否存在'><title>Algo Diary</title>
+
+<link rel='canonical' href='https://example.com/p/algo-diary/'>
+
+<link rel="stylesheet" href="/scss/style.min.b80bf249ce4a22cf55e8d7340a0b37a2f2c10f54f3a9a49cb94b694a2eb0bbea.css"><meta property='og:title' content='Algo Diary'>
+<meta property='og:description' content='medium做多，hard做精，easy做稳
+—3.28 洗澡时有感
+ Content Graph   Dijkstra
+3.30 ~ 4.2
+  Topological Sort
+4.3 ~ 4.4
+  Common   Enumeration
+4.5
+  Binary Search
+  Segment Tree
+  String   Brute Force
+  KMP
+  DP  DP Greedy  3.28  475. 供暖器
+ 很像我字节二面的算法题
+排序&#43;二分遍历能过
+3.29  1004.最大连续1的个数 III
+  2024.考试的最大困扰度
+ 两道一样的滑动窗口
+ 1697.检查边长度限制的路径是否存在'>
+<meta property='og:url' content='https://example.com/p/algo-diary/'>
+<meta property='og:site_name' content='耶宵夜'>
+<meta property='og:type' content='article'><meta property='article:section' content='Post' /><meta property='article:tag' content='Algo' /><meta property='article:published_time' content='2022-04-05T18:19:05&#43;08:00'/><meta property='article:modified_time' content='2022-04-05T18:19:05&#43;08:00'/>
+<meta name="twitter:title" content="Algo Diary">
+<meta name="twitter:description" content="medium做多，hard做精，easy做稳
+—3.28 洗澡时有感
+ Content Graph   Dijkstra
+3.30 ~ 4.2
+  Topological Sort
+4.3 ~ 4.4
+  Common   Enumeration
+4.5
+  Binary Search
+  Segment Tree
+  String   Brute Force
+  KMP
+  DP  DP Greedy  3.28  475. 供暖器
+ 很像我字节二面的算法题
+排序&#43;二分遍历能过
+3.29  1004.最大连续1的个数 III
+  2024.考试的最大困扰度
+ 两道一样的滑动窗口
+ 1697.检查边长度限制的路径是否存在">
+    <link rel="shortcut icon" href="icons/castle.svg" />
+
+    </head>
+    <body class="
+    article-page
+    ">
+    <script>
+        (function() {
+            const colorSchemeKey = 'StackColorScheme';
+            if(!localStorage.getItem(colorSchemeKey)){
+                localStorage.setItem(colorSchemeKey, "auto");
+            }
+        })();
+    </script><script>
+    (function() {
+        const colorSchemeKey = 'StackColorScheme';
+        const colorSchemeItem = localStorage.getItem(colorSchemeKey);
+        const supportDarkMode = window.matchMedia('(prefers-color-scheme: dark)').matches === true;
+
+        if (colorSchemeItem == 'dark' || colorSchemeItem === 'auto' && supportDarkMode) {
+            
+
+            document.documentElement.dataset.scheme = 'dark';
+        } else {
+            document.documentElement.dataset.scheme = 'light';
+        }
+    })();
+</script>
+<div class="container main-container flex on-phone--column extended"><aside class="sidebar left-sidebar sticky ">
+    <button class="hamburger hamburger--spin" type="button" id="toggle-menu" aria-label="Toggle Menu">
+        <span class="hamburger-box">
+            <span class="hamburger-inner"></span>
+        </span>
+    </button>
+
+    <header>
+        
+            
+            <figure class="site-avatar">
+                <a href="/">
+                
+                    
+                    
+                    
+                        
+                        <img src="/img/yeahxy_hu49da789840988e7b71825591d19947e9_110231_300x0_resize_box_3.png" width="300"
+                            height="300" class="site-logo" loading="lazy" alt="Avatar">
+                    
+                
+                </a>
+                
+                    <span class="emoji">😷</span>
+                
+            </figure>
+            
+        
+        
+        <div class="site-meta">
+            <h1 class="site-name"><a href="/">耶宵夜</a></h1>
+            <h2 class="site-description">Amazing things happen.</h2>
+        </div>
+    </header><ol class="social-menu">
+            
+                <li>
+                    <a 
+                        href='https://github.com/OxOtn3'
+                        target="_blank"
+                        title="GitHub"
+                    >
+                        
+                        
+                            <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-brand-github" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z" fill="none"/>
+  <path d="M9 19c-4.3 1.4 -4.3 -2.5 -6 -3m12 5v-3.5c0 -1 .1 -1.4 -.5 -2c2.8 -.3 5.5 -1.4 5.5 -6a4.6 4.6 0 0 0 -1.3 -3.2a4.2 4.2 0 0 0 -.1 -3.2s-1.1 -.3 -3.5 1.3a12.3 12.3 0 0 0 -6.2 0c-2.4 -1.6 -3.5 -1.3 -3.5 -1.3a4.2 4.2 0 0 0 -.1 3.2a4.6 4.6 0 0 0 -1.3 3.2c0 4.6 2.7 5.7 5.5 6c-.6 .6 -.6 1.2 -.5 2v3.5" />
+</svg>
+
+
+
+                        
+                    </a>
+                </li>
+            
+                <li>
+                    <a 
+                        href='https://twitter.com'
+                        target="_blank"
+                        title="Twitter"
+                    >
+                        
+                        
+                            <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-brand-twitter" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z" fill="none"/>
+  <path d="M22 4.01c-1 .49 -1.98 .689 -3 .99c-1.121 -1.265 -2.783 -1.335 -4.38 -.737s-2.643 2.06 -2.62 3.737v1c-3.245 .083 -6.135 -1.395 -8 -4c0 0 -4.182 7.433 4 11c-1.872 1.247 -3.739 2.088 -6 2c3.308 1.803 6.913 2.423 10.034 1.517c3.58 -1.04 6.522 -3.723 7.651 -7.742a13.84 13.84 0 0 0 .497 -3.753c-.002 -.249 1.51 -2.772 1.818 -4.013z" />
+</svg>
+
+
+
+                        
+                    </a>
+                </li>
+            
+        </ol><ol class="menu" id="main-menu">
+        
+        
+
+        <div class="menu-bottom-section">
+                <li id="i18n-switch">  
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-language" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z" fill="none"/>
+  <path d="M4 5h7" />
+  <path d="M9 3v2c0 4.418 -2.239 8 -5 8" />
+  <path d="M5 9c-.003 2.144 2.952 3.908 6.7 4" />
+  <path d="M12 20l4 -9l4 9" />
+  <path d="M19.1 18h-6.2" />
+</svg>
+
+
+
+                    <select name="language" onchange="window.location.href = this.selectedOptions[0].value">
+                        
+                            <option value="https://example.com/" selected>English</option>
+                        
+                            <option value="https://example.com/cn/" >中文</option>
+                        
+                            <option value="https://example.com/ar/" >عربي</option>
+                        
+                    </select>
+                </li>
+            
+            
+            
+                <li id="dark-mode-toggle">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-toggle-left" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <circle cx="8" cy="12" r="2" />
+  <rect x="2" y="6" width="20" height="12" rx="6" />
+</svg>
+
+
+
+                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-toggle-right" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <circle cx="16" cy="12" r="2" />
+  <rect x="2" y="6" width="20" height="12" rx="6" />
+</svg>
+
+
+
+                    <span>Dark Mode</span>
+                </li>
+            
+        </div>
+    </ol>
+</aside>
+<main class="main full-width">
+    <article class="main-article">
+    <header class="article-header">
+
+    <div class="article-details">
+    
+
+    <div class="article-title-wrapper">
+        <h2 class="article-title">
+            <a href="/p/algo-diary/">Algo Diary</a>
+        </h2>
+    
+        
+    </div>
+
+    
+    <footer class="article-time">
+        
+            <div>
+                <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-calendar-time" width="56" height="56" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <path d="M11.795 21h-6.795a2 2 0 0 1 -2 -2v-12a2 2 0 0 1 2 -2h12a2 2 0 0 1 2 2v4" />
+  <circle cx="18" cy="18" r="4" />
+  <path d="M15 3v4" />
+  <path d="M7 3v4" />
+  <path d="M3 11h16" />
+  <path d="M18 16.496v1.504l1 1" />
+</svg>
+                <time class="article-time--published">Apr 05, 2022</time>
+            </div>
+        
+
+        
+            <div>
+                <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-clock" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <circle cx="12" cy="12" r="9" />
+  <polyline points="12 7 12 12 15 15" />
+</svg>
+
+
+
+                <time class="article-time--reading">
+                    2 minute read
+                </time>
+            </div>
+        
+    </footer>
+    
+
+    
+</div>
+</header>
+
+    <section class="article-content">
+    
+    
+    <blockquote>
+<p>medium做多，hard做精，easy做稳</p>
+<p>—3.28 洗澡时有感</p>
+</blockquote>
+<h2 id="content">Content</h2>
+<h3 id="graph">Graph</h3>
+<ol>
+<li>
+<p>Dijkstra</p>
+<p>3.30 ~ 4.2</p>
+</li>
+<li>
+<p>Topological Sort</p>
+<p>4.3 ~ 4.4</p>
+</li>
+</ol>
+<h3 id="common">Common</h3>
+<ol>
+<li>
+<p>Enumeration</p>
+<p>4.5</p>
+</li>
+<li>
+<p>Binary Search</p>
+</li>
+<li>
+<p>Segment Tree</p>
+</li>
+</ol>
+<h3 id="string">String</h3>
+<ol>
+<li>
+<p>Brute Force</p>
+</li>
+<li>
+<p>KMP</p>
+</li>
+</ol>
+<h3 id="dp">DP</h3>
+<ol>
+<li>DP</li>
+<li>Greedy</li>
+</ol>
+<h2 id="328">3.28</h2>
+<blockquote>
+<p><a class="link" href="https://leetcode-cn.com/problems/heaters/"  target="_blank" rel="noopener"
+    >475. 供暖器</a></p>
+</blockquote>
+<p>很像我字节二面的算法题</p>
+<p>排序+二分遍历能过</p>
+<h2 id="329">3.29</h2>
+<blockquote>
+<p><a class="link" href="https://leetcode-cn.com/problems/max-consecutive-ones-iii/"  target="_blank" rel="noopener"
+    >1004.最大连续1的个数 III</a></p>
+</blockquote>
+<blockquote>
+<p><a class="link" href="https://leetcode-cn.com/problems/maximize-the-confusion-of-an-exam/"  target="_blank" rel="noopener"
+    >2024.考试的最大困扰度</a></p>
+</blockquote>
+<p>两道一样的滑动窗口</p>
+<blockquote>
+<p><a class="link" href="https://leetcode-cn.com/problems/checking-existence-of-edge-length-limited-paths/"  target="_blank" rel="noopener"
+    >1697.检查边长度限制的路径是否存在</a></p>
+</blockquote>
+<p>第一次理解 <code>离线</code> 和 <code>在线</code> 的说法</p>
+<p>很巧妙的根据dis和limit排序</p>
+<p>保证dis &lt; limit的情况下只需要用uf判断连通性即可</p>
+<blockquote>
+<p><a class="link" href="https://leetcode-cn.com/problems/count-submatrices-with-all-ones/"  target="_blank" rel="noopener"
+    >1504. 统计全 1 子矩形</a></p>
+</blockquote>
+<p>枚举理解了</p>
+<p>单调栈不是很懂</p>
+<blockquote>
+<p><a class="link" href="https://leetcode-cn.com/problems/count-square-submatrices-with-all-ones/"  target="_blank" rel="noopener"
+    >1277. 统计全为 1 的正方形子矩阵</a></p>
+</blockquote>
+<p>这题虽然跟上题很像，但是可以dp，简单很多</p>
+<blockquote>
+<p><a class="link" href="https://leetcode-cn.com/problems/largest-submatrix-with-rearrangements/"  target="_blank" rel="noopener"
+    >1727. 重新排列后的最大子矩阵</a></p>
+</blockquote>
+<p>看上去跟前面两题很像，但思路其实感觉是84/85的思路</p>
+<p>预处理算包括当前位置在内的上方连续的1，然后对每一行排序，遍历，顺便剪枝优化</p>
+<blockquote>
+<p><a class="link" href="https://leetcode-cn.com/problems/groups-of-strings/"  target="_blank" rel="noopener"
+    >2157. 字符串分组</a></p>
+</blockquote>
+<p>一眼就能看出是并查集</p>
+<p>但是比较难想到是二进制枚举，以及替换一个字母的表示</p>
+<p>有一些细节没想明白</p>
+<h2 id="330">3.30</h2>
+<blockquote>
+<p><a class="link" href="https://leetcode-cn.com/problems/find-servers-that-handled-most-number-of-requests/"  target="_blank" rel="noopener"
+    >1606. 找到处理最多请求的服务器</a></p>
+</blockquote>
+<p>几乎没有思路，最后只能想到可能用优先队列，然后还是不知道怎么做</p>
+<p>维护两个pq，分别根据编号维护空闲服务器，根据结束时间维护工作中服务器</p>
+<p>很巧妙的用了 <code>i + (idx - i) % k</code> 入队，并且这里还用到了python负数取模变成同余的非负数的性质，</p>
+<p>别的语言应该是 <code>i + ((idx - i) % k + k) % k</code></p>
+<p>目的其实都是一样的，保证得到的是一个不小于 i 的且与 id 同余的数，从而能够保证当前轮次以及下一轮次能够按照服务器编号顺序接受请求</p>
+<blockquote>
+<p><a class="link" href="https://leetcode-cn.com/problems/network-delay-time/"  target="_blank" rel="noopener"
+    >743. 网络延迟时间</a></p>
+</blockquote>
+<p>比较经典的Dijkstra</p>
+<p>矩阵枚举和优先队列两种写法</p>
+<blockquote>
+<p><a class="link" href="https://leetcode-cn.com/problems/minimum-cost-to-make-at-least-one-valid-path-in-a-grid/"  target="_blank" rel="noopener"
+    >1368. 使网格图至少有一条有效路径的最小代价</a></p>
+</blockquote>
+<p>虽然知道要用Dijkstra但是读完题根本想不到，看完题解才明白</p>
+<p>实际上就是顺着箭头的weight=0，变换方向weight=1</p>
+<p>明白这一点之后就是板子题了</p>
+<p>另外学习了一种 <code>0-1 广度优先搜索</code> ，核心就是双端队列</p>
+<p>weight为0的从队首入队，为1从队尾入队</p>
+<p>这样就保证从原点开始的距离单调增</p>
+<p>（可以拓展到图中只有两种weighta, b，a!=b 的情况</p>
+<p>写法其实和dij类似</p>
+<blockquote>
+<p><a class="link" href="https://leetcode-cn.com/problems/minimum-weighted-subgraph-with-the-required-paths/"  target="_blank" rel="noopener"
+    >2203. 得到要求路径的最小带权子图</a></p>
+</blockquote>
+<p>周赛没写出来的题hhh</p>
+<p>主要是思路，能想到枚举相交点就很好解决了</p>
+<p>想到了就是板子题</p>
+<blockquote>
+<p><a class="link" href="https://leetcode-cn.com/problems/path-with-maximum-probability/"  target="_blank" rel="noopener"
+    >1514. 概率最大的路径</a></p>
+</blockquote>
+<p>权重变成概率</p>
+<p>dij板子题</p>
+<p>唯一有点坑就是python没有大顶堆，得用 <code>heappush(q, -elem)</code> 和 <code>-heappop(q)</code> 实现</p>
+<blockquote>
+<p><a class="link" href="https://leetcode-cn.com/problems/number-of-ways-to-arrive-at-destination/"  target="_blank" rel="noopener"
+    >1976. 到达目的地的方案数</a></p>
+</blockquote>
+<p>一眼dij</p>
+<p>但是求方案数不太会，学习了一下</p>
+<p>求出最短路之后反推就行，记得用@cache优化</p>
+<h2 id="331">3.31</h2>
+<blockquote>
+<p><a class="link" href="https://leetcode-cn.com/problems/self-dividing-numbers/"  target="_blank" rel="noopener"
+    >728. 自除数</a></p>
+</blockquote>
+<p>暴力，没啥好说的</p>
+<p>第一次拿到每月打卡勋章hhh</p>
+<blockquote>
+<p><a class="link" href="https://leetcode-cn.com/problems/number-of-restricted-paths-from-first-to-last-node/"  target="_blank" rel="noopener"
+    >1786. 从第一个节点出发到最后一个节点的受限路径数</a></p>
+</blockquote>
+<p>一开始题意没读懂，理解了半天</p>
+<p>dij，然后反推，跟1976很像，只是反推的条件不同</p>
+<blockquote>
+<p><a class="link" href="https://leetcode-cn.com/problems/reachable-nodes-in-subdivided-graph/"  target="_blank" rel="noopener"
+    >882. 细分图中的可到达结点</a></p>
+</blockquote>
+<p>自己思考做出来了hard，很开心哈哈</p>
+<p>核心还是先dij算出最小距离（weight为cnt + 1），之后遍历边，根据边的两点分别判断，最后加上可达的点即可</p>
+<blockquote>
+<p><a class="link" href="https://leetcode-cn.com/problems/cheapest-flights-within-k-stops/"  target="_blank" rel="noopener"
+    >787. K 站中转内最便宜的航班</a></p>
+</blockquote>
+<p>套完dij之后就不知道该怎么做了，主要是k的限制，看题解学习了一下</p>
+<p>dist[i] -&gt; dist[i] [j] ，其实就是dp思想</p>
+<p>之后相应改一改dist就可以了</p>
+<blockquote>
+<p><a class="link" href="https://leetcode-cn.com/problems/minimum-cost-to-reach-destination-in-time/"  target="_blank" rel="noopener"
+    >1928. 规定时间内到达终点的最小花费</a></p>
+</blockquote>
+<p>跟787其实一样</p>
+<p>dist -&gt; cost</p>
+<p>k -&gt; max_time</p>
+<p>Dij + dp</p>
+<h2 id="41">4.1</h2>
+<p>Happy April Fool&rsquo;s Day!</p>
+<p>晚上才开始刷题hhh</p>
+<blockquote>
+<p><a class="link" href="https://leetcode-cn.com/problems/array-of-doubled-pairs/"  target="_blank" rel="noopener"
+    >954. 二倍数对数组</a></p>
+</blockquote>
+<p>一开始想的排序+二分，另外维护一个记录，细节好像比较麻烦（其实是不会写二分</p>
+<p>后面想到了pq+dict，思路很清楚，但是由于python处理堆比较麻烦，写了40多行，还好一次ac</p>
+<p>看了一下题解，只能说方向是对的</p>
+<p>直接维护dict（用Counter，然后从绝对值小的开始判断即可</p>
+<p>看题解还可以用拓扑排序做，记个TODO，刷完dij来再做一次</p>
+<blockquote>
+<p><a class="link" href="https://leetcode-cn.com/problems/maximum-compatibility-score-sum/"  target="_blank" rel="noopener"
+    >1947. 最大兼容性评分和</a></p>
+</blockquote>
+<p>毫无思路，看了题解之后做的，做完还是不知道tag里的dij哪来的</p>
+<p>先预处理出每个学生对应每个老师的得分，</p>
+<p>之后由于数据量不大，想到二进制枚举，0/1代表当前老师是否已经被选，</p>
+<p>接着需要记录状态转移，即当前枚举bit下最大得分，所以用了dp数组，</p>
+<p>而且需要当前位为1才能进状态转移，因为是根据这个位不为1的状态进行转移的</p>
+<p>有个比较tricky的地方，转移的时候要知道当前学生编号为c-1，其实就是因为已经当前已经有c-1个导师被选中了，学生和导师是一一对应的</p>
+<blockquote>
+<p><a class="link" href="https://leetcode-cn.com/problems/minimum-xor-sum-of-two-arrays/"  target="_blank" rel="noopener"
+    >1879. 两个数组最小的异或值之和</a></p>
+</blockquote>
+<p>和1947几乎完全一样，唯一不同是dp数组初始化，以及需要注意base case</p>
+<p>预处理+ 二进制枚举+dp</p>
+<h2 id="42">4.2</h2>
+<blockquote>
+<p><a class="link" href="https://leetcode-cn.com/problems/strong-password-checker/"  target="_blank" rel="noopener"
+    >420. 强密码检验器</a></p>
+</blockquote>
+<p>模拟，想不出来，就看答案了</p>
+<p>看了还是不太会hhh，先放一放吧</p>
+<blockquote>
+<p><a class="link" href="https://leetcode-cn.com/problems/swim-in-rising-water/"  target="_blank" rel="noopener"
+    >778. 水位上升的泳池中游泳</a></p>
+</blockquote>
+<p>一开始看到tag，往dij方向想，没想出来</p>
+<p>看到题解后用bfs+pq很简单做出来</p>
+<blockquote>
+<p><a class="link" href="https://leetcode-cn.com/problems/min-cost-to-connect-all-points/"  target="_blank" rel="noopener"
+    >1584. 连接所有点的最小费用</a></p>
+</blockquote>
+<p>mst板子题</p>
+<p>用kruskal怎么写都不对，一开始发现边没从j+1开始造，改了发现还是不对，麻了</p>
+<p>prim过了</p>
+<blockquote>
+<p><a class="link" href="https://leetcode-cn.com/problems/trapping-rain-water-ii/"  target="_blank" rel="noopener"
+    >407. 接雨水 II</a></p>
+</blockquote>
+<p>一开始的思路是模仿二维的，维护四个方向的最小值，取最小值减，但是没有想具体实现，感觉比较麻烦</p>
+<p>其实思路是对的，实现用最小堆+visited</p>
+<p>首先边上一圈肯定接不到雨水，预处理，记录已经visit并且入堆，</p>
+<p>之后循环取堆中最小的进行四周遍历，能填就往里填，再入堆（注意入堆的是接过雨水之后的高度，可能不变也可能变高</p>
+<p>双周赛a3道，最后一题拓展KMP板子，不会</p>
+<h2 id="43">4.3</h2>
+<p>周赛第一次AKhhh</p>
+<blockquote>
+<p><a class="link" href="https://leetcode-cn.com/problems/find-smallest-letter-greater-than-target/"  target="_blank" rel="noopener"
+    >744. 寻找比目标字母大的最小字母</a></p>
+</blockquote>
+<p>模拟就行，还可以二分</p>
+<blockquote>
+<p><a class="link" href="https://leetcode-cn.com/problems/course-schedule-ii/"  target="_blank" rel="noopener"
+    >210. 课程表 II</a></p>
+</blockquote>
+<p>和207类似，拓扑排序，顺便记录一下就行</p>
+<p>拓扑排序其实就是维护入度+bfs</p>
+<blockquote>
+<p><a class="link" href="https://leetcode-cn.com/problems/find-eventual-safe-states/"  target="_blank" rel="noopener"
+    >802. 找到最终的安全状态</a></p>
+</blockquote>
+<p>建立反图再拓扑排序即可</p>
+<p>看题解学习了dfs+三色标记，维护一个记录节点颜色数组，分别代表状态为未访问，正在访问的栈中/在环上，已访问过且不在环上，</p>
+<p>对每个点进行dfs即可</p>
+<blockquote>
+<p><a class="link" href="https://leetcode-cn.com/problems/minimum-height-trees/"  target="_blank" rel="noopener"
+    >310. 最小高度树</a></p>
+</blockquote>
+<p>一开始想的统计度，最小的作为根节点，发现不太行</p>
+<p>看了题解，其实思路差不多，也是拓扑排序bfs的板子</p>
+<p>维护degree表，双向的图，用队列bfs，度为1的入队</p>
+<p>其实最后只可能剩下1/2个可能的根节点</p>
+<blockquote>
+<p><a class="link" href="https://leetcode-cn.com/problems/sort-items-by-groups-respecting-dependencies/"  target="_blank" rel="noopener"
+    >1203. 项目管理</a></p>
+</blockquote>
+<p>除了拓扑没什么思路，无从下手</p>
+<p>看了题解，思路真的牛逼</p>
+<p>双重拓扑排序，先根据组的关系排一次，得到组的顺序，再根据每一组内的项目进行排序</p>
+<p>有几个比较tricky的地方：一是没有组的需要改成不同的组号，维护变量遍历改即可，</p>
+<p>二是需要注意在不同组的时候，需要根据项目建图，而不是根据组建图，vice versa</p>
+<p>其间任何一次拓扑排序后结果不正确（有环，都可以直接return空</p>
+<blockquote>
+<p><a class="link" href="https://leetcode-cn.com/problems/course-schedule-iv/"  target="_blank" rel="noopener"
+    >1462. 课程表 IV</a></p>
+</blockquote>
+<p>板子题，另外维护一个前置节点即可</p>
+<p>注意python的set取交集用 |</p>
+<p>看题解发现了用dfs + @cache，不得不说python的@cache真的赖皮</p>
+<blockquote>
+<p><a class="link" href="https://leetcode-cn.com/problems/strange-printer-ii/"  target="_blank" rel="noopener"
+    >1591. 奇怪的打印机 II</a></p>
+</blockquote>
+<p>完全没有思路</p>
+<p>看了答案才知道为什么用拓扑排序</p>
+<p>对每种颜色进行遍历，确定最大范围，在这个颜色范围内，不是这个颜色，说明在涂完这个颜色后，又新涂了当前颜色，</p>
+<p>所以可以理解为一种先后关系，原来的颜色 -&gt; 现在的颜色，所以可以建图，维护入度</p>
+<p>题目中限定数字范围为&lt;=60，所以开61的空间就好</p>
+<p>之后就是板子题了</p>
+<p>犯了个很sb的错误，找了半天bug，心态崩了</p>
+<h2 id="44">4.4</h2>
+<blockquote>
+<p><a class="link" href="https://leetcode-cn.com/problems/range-sum-query-mutable/"  target="_blank" rel="noopener"
+    >307. 区域和检索 - 数组可修改</a></p>
+</blockquote>
+<p>树状数组/线段树 板子题</p>
+<blockquote>
+<p><a class="link" href="https://leetcode-cn.com/problems/rank-transform-of-a-matrix/"  target="_blank" rel="noopener"
+    >1632. 矩阵转换后的秩</a></p>
+</blockquote>
+<p>真困难题</p>
+<p>因为只考虑每行/列的相对关系，所以可以用拓扑排序</p>
+<p>但是写到最后出了点问题，因为当行/列元素相同时需要保证该元素的最终值为相等元素的值中最大的那一个，想了一下只能想到并查集，感觉很麻烦，就看答案了</p>
+<p>结果一看真是并查集</p>
+<p>不想改了，cv</p>
+<p>（看了一下是codeforces div1的c题原题</p>
+<blockquote>
+<p><a class="link" href="https://leetcode-cn.com/problems/largest-color-value-in-a-directed-graph/"  target="_blank" rel="noopener"
+    >1857. 有向图中最大颜色值</a></p>
+</blockquote>
+<p>困难的点在于记录颜色值，没什么思路</p>
+<p>看了答案，其实开个数组记录就可以了（或者说是dp</p>
+<p>dp[i] [j]：到i点为止，颜色j的最大值，然后在拓扑排序的过程中更新状态即可</p>
+<blockquote>
+<p><a class="link" href="https://leetcode-cn.com/problems/parallel-courses-iii/"  target="_blank" rel="noopener"
+    >2050. 并行课程 III</a></p>
+</blockquote>
+<p>跟1857很像，拓扑+dp维护所需最大时间即可</p>
+<blockquote>
+<p><a class="link" href="https://leetcode-cn.com/problems/find-all-possible-recipes-from-given-supplies/"  target="_blank" rel="noopener"
+    >2115. 从给定原材料中找到所有可以做出的菜</a></p>
+</blockquote>
+<p>很早之前周赛的一道题目，当时还不怎么会写拓扑排序hhh</p>
+<p>思路很简单，但是比较坑的一点就是ingredients里面可能在recipes和supplies都没出现过，我的处理是只加入度不加边</p>
+<blockquote>
+<p><a class="link" href="https://leetcode-cn.com/problems/groups-of-strings/"  target="_blank" rel="noopener"
+    >2157. 字符串分组</a></p>
+</blockquote>
+<p>真困难题</p>
+<p>3.29做过的题，当时没做完，又做了一下，应该是之前做过几道二进制枚举题目的原因，完全理解了解题思路</p>
+<p>由于 <code>只考虑s1和s2的集合</code> ，也就是说出现顺序无关，并且每个字母最多出现一次，所以可以用二进制位表示，</p>
+<p>为了得到答案的分组数和最大个数，需要用 <code>并查集</code> ，</p>
+<p>那么删除/添加一个字母，分别对应异或当前位，由1变0和由0变1，</p>
+<p>替换一个字母，实际上是删除一个字母，然后再次遍历，并且只能是添加一个字母，</p>
+<p>其中可以维护一个set来快速判断是否存在于word，以及record记录words中对应的并查集parent</p>
+<p>最后9秒多过了，差点TLE了，看来评论说python卡常是真的</p>
+<blockquote>
+<p><a class="link" href="https://leetcode-cn.com/problems/maximum-employees-to-be-invited-to-a-meeting/"  target="_blank" rel="noopener"
+    >2127. 参加会议的最多员工数</a></p>
+</blockquote>
+<p>真困难题</p>
+<p>pending一下，不太会</p>
+<p>题解说是内向基环树</p>
+<p>看了群主的视频，思路很清晰了，主要是分析部分：</p>
+<p>分析可得，对于图的每一个连通部分，有两种情况：</p>
+<ol>
+<li>
+<p>有环，且环上的点个数 &gt;= 3</p>
+</li>
+<li>
+<p>有环，且环上的点个数 == 2</p>
+</li>
+</ol>
+<p>对于情况1，最大满足条件的个数只能为环上的个数，因为此时每个点的两边都已经定了</p>
+<p>对于情况2，此时图的形状是两元环+每个顶点延伸的边，</p>
+<p>此时最大满足条件个数可以加上其他连通部分的情况2下的点数总和，</p>
+<p>因为对于情况2中的顶点，无论是二元环上的点还是延伸边上的点，都还有另一边空着，</p>
+<p>所以拓扑排序时，为每个点维护变量记录向外延展的个数，</p>
+<p>维护一个visited数组，排序完后visited[i] = False为环上点，再对每一个连通分量进行遍历，择优</p>
+<blockquote>
+<p><a class="link" href="https://leetcode-cn.com/problems/jC7MId/"  target="_blank" rel="noopener"
+    >剑指 Offer II 051. 节点之和最大的路径</a></p>
+</blockquote>
+<p>做过的题还是不会做</p>
+<p>果然纯靠理解做和靠刷题堆砌的结果还是有差距的，说到底还是我太菜了</p>
+<p>后序遍历就可以了，注意更新res的值和返回的值不一样，更新的值可以是l+r+root.val，因为在同一条路径上，但返回只能返回最大值了</p>
+<blockquote>
+<p><a class="link" href="https://leetcode-cn.com/problems/NYBBNL/"  target="_blank" rel="noopener"
+    >剑指 Offer II 052. 展平二叉搜索树</a></p>
+</blockquote>
+<p>主要是一开始用一个dummy，然后维护一个pre</p>
+<blockquote>
+<p><a class="link" href="https://leetcode-cn.com/problems/P5rCT8/"  target="_blank" rel="noopener"
+    >剑指 Offer II 053. 二叉搜索树中的中序后继</a></p>
+</blockquote>
+<p>利用好二叉搜索树性质中序遍历就可以了</p>
+<p>应该是简单题。。</p>
+<h2 id="45">4.5</h2>
+<blockquote>
+<p><a class="link" href="https://leetcode-cn.com/problems/prime-number-of-set-bits-in-binary-representation/"  target="_blank" rel="noopener"
+    >762. 二进制表示中质数个计算置位</a></p>
+</blockquote>
+<p>暴力就行</p>
+<blockquote>
+<p><a class="link" href="https://leetcode-cn.com/problems/lexicographically-smallest-string-after-applying-operations/"  target="_blank" rel="noopener"
+    >1625. 执行操作后字典序最小的字符串</a></p>
+</blockquote>
+<p>以为有什么厉害的解法，结果居然就是枚举</p>
+<p>先累加遍历，再轮转遍历（反过来也行，然后取最小</p>
+<blockquote>
+<p><a class="link" href="https://leetcode-cn.com/problems/number-of-subarrays-with-bounded-maximum/"  target="_blank" rel="noopener"
+    >795. 区间子数组个数</a></p>
+</blockquote>
+<p>题解的思路很精妙：</p>
+<p>小于等于right的子数组数 - 小于等于left - 1的子数组数 = [left, right]的子数组数，</p>
+<p>所以写个count函数计算小于等于k的子数组数就可以了</p>
+<blockquote>
+<p><a class="link" href="https://leetcode-cn.com/problems/change-minimum-characters-to-satisfy-one-of-three-conditions/"  target="_blank" rel="noopener"
+    >1737. 满足三条件之一需改变的最少字符数</a></p>
+</blockquote>
+<p>太菜了，根本没思路，答案思路：</p>
+<p>分别统计ab中每个字母出现次数，然后对i进行枚举，使得a中每个字母都小于等于i，b中每个字母都大于i，</p>
+<p>这样分别对应情况1和2，</p>
+<p>有个tricky的点，枚举中a是可以的，但z不行，因为字母不能大于z，</p>
+<p>情况3通过枚举i，使得a，b每个字母都为i，需要的操作数也就是ab的长度和减去i在ab中分别出现的次数，</p>
+<p>最后择优即可</p>
+<blockquote>
+<p><a class="link" href="https://leetcode-cn.com/problems/detect-squares/"  target="_blank" rel="noopener"
+    >2013. 检测正方形</a></p>
+</blockquote>
+<p>用counter或者hashmap记录一下，每次枚举遍历就可了</p>
+<blockquote>
+<p><a class="link" href="https://leetcode-cn.com/problems/search-insert-position/"  target="_blank" rel="noopener"
+    >35. 搜索插入位置</a></p>
+</blockquote>
+<p>二分，水一题hhh</p>
+<p>&ndash;600啦，暂时不想刷了hh&ndash;</p>
+
+</section>
+
+
+    <footer class="article-footer">
+    
+    <section class="article-tags">
+        
+            <a href="/tags/algo/">Algo</a>
+        
+    </section>
+
+
+    
+    <section class="article-copyright">
+        <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-copyright" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <circle cx="12" cy="12" r="9" />
+  <path d="M14.5 9a3.5 4 0 1 0 0 6" />
+</svg>
+
+
+
+        <span>Licensed under CC BY-NC-SA 4.0</span>
+    </section>
+    </footer>
+
+
+    
+        <link 
+                rel="stylesheet" 
+                href="https://cdn.jsdelivr.net/npm/katex@0.13.13/dist/katex.min.css"integrity="sha384-RZU/ijkSsFbcmivfdRBQDtwuwVqK7GMOw6IMvKyeWL2K5UAlyp6WonmB8m7Jd0Hn"crossorigin="anonymous"
+            ><script 
+                src="https://cdn.jsdelivr.net/npm/katex@0.13.13/dist/katex.min.js"integrity="sha384-pK1WpvzWVBQiP0/GjnvRxV4mOb0oxFuyRxJlk6vVw146n3egcN5C925NCP7a7BY8"crossorigin="anonymous"
+                defer
+                >
+            </script><script 
+                src="https://cdn.jsdelivr.net/npm/katex@0.13.13/dist/contrib/auto-render.min.js"integrity="sha384-vZTG03m&#43;2yp6N6BNi5iM4rW4oIwk5DfcNdFfxkk9ZWpDriOkXX8voJBFrAO7MpVl"crossorigin="anonymous"
+                defer
+                >
+            </script><script>
+    window.addEventListener("DOMContentLoaded", () => {
+        renderMathInElement(document.querySelector(`.article-content`), {
+            delimiters: [
+                { left: "$$", right: "$$", display: true },
+                { left: "$", right: "$", display: false },
+                { left: "\\(", right: "\\)", display: false },
+                { left: "\\[", right: "\\]", display: true }
+            ]
+        });})
+</script>
+    
+</article>
+
+    
+
+    
+
+     
+    
+        
+    <div class="disqus-container">
+    <div id="disqus_thread"></div>
+<script type="application/javascript">
+    var disqus_config = function () {
+    
+    
+    
+    };
+    (function() {
+        if (["localhost", "127.0.0.1"].indexOf(window.location.hostname) != -1) {
+            document.getElementById('disqus_thread').innerHTML = 'Disqus comments not available by default when the website is previewed locally.';
+            return;
+        }
+        var d = document, s = d.createElement('script'); s.async = true;
+        s.src = '//' + "hugo-theme-stack" + '.disqus.com/embed.js';
+        s.setAttribute('data-timestamp', +new Date());
+        (d.head || d.body).appendChild(s);
+    })();
+</script>
+<noscript>Please enable JavaScript to view the <a href="https://disqus.com/?ref_noscript">comments powered by Disqus.</a></noscript>
+<a href="https://disqus.com" class="dsq-brlink">comments powered by <span class="logo-disqus">Disqus</span></a>
+</div>
+
+<style>
+    .disqus-container {
+        background-color: var(--card-background);
+        border-radius: var(--card-border-radius);
+        box-shadow: var(--shadow-l1);
+        padding: var(--card-padding);
+    }
+</style>
+
+<script>
+    window.addEventListener('onColorSchemeChange', (e) => {
+        if (DISQUS) {
+            DISQUS.reset({
+                reload: true
+            });
+        }
+    })
+</script>
+
+    
+
+    <footer class="site-footer">
+    <section class="copyright">
+        &copy; 
+        
+            2020 - 
+        
+        2022 耶宵夜
+    </section>
+    
+    <section class="powerby">
+        Built with <a href="https://gohugo.io/" target="_blank" rel="noopener">Hugo</a> <br />
+        Theme <b><a href="https://github.com/CaiJimmy/hugo-theme-stack" target="_blank" rel="noopener" data-version="3.9.0">Stack</a></b> designed by <a href="https://jimmycai.com" target="_blank" rel="noopener">Jimmy</a>
+    </section>
+</footer>
+
+
+    
+<div class="pswp" tabindex="-1" role="dialog" aria-hidden="true">
+
+    
+    <div class="pswp__bg"></div>
+
+    
+    <div class="pswp__scroll-wrap">
+
+        
+        <div class="pswp__container">
+            <div class="pswp__item"></div>
+            <div class="pswp__item"></div>
+            <div class="pswp__item"></div>
+        </div>
+
+        
+        <div class="pswp__ui pswp__ui--hidden">
+
+            <div class="pswp__top-bar">
+
+                
+
+                <div class="pswp__counter"></div>
+
+                <button class="pswp__button pswp__button--close" title="Close (Esc)"></button>
+
+                <button class="pswp__button pswp__button--share" title="Share"></button>
+
+                <button class="pswp__button pswp__button--fs" title="Toggle fullscreen"></button>
+
+                <button class="pswp__button pswp__button--zoom" title="Zoom in/out"></button>
+
+                
+                
+                <div class="pswp__preloader">
+                    <div class="pswp__preloader__icn">
+                        <div class="pswp__preloader__cut">
+                            <div class="pswp__preloader__donut"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="pswp__share-modal pswp__share-modal--hidden pswp__single-tap">
+                <div class="pswp__share-tooltip"></div>
+            </div>
+
+            <button class="pswp__button pswp__button--arrow--left" title="Previous (arrow left)">
+            </button>
+
+            <button class="pswp__button pswp__button--arrow--right" title="Next (arrow right)">
+            </button>
+
+            <div class="pswp__caption">
+                <div class="pswp__caption__center"></div>
+            </div>
+
+        </div>
+
+    </div>
+
+</div><script 
+                src="https://cdn.jsdelivr.net/npm/photoswipe@4.1.3/dist/photoswipe.min.js"integrity="sha256-ePwmChbbvXbsO02lbM3HoHbSHTHFAeChekF1xKJdleo="crossorigin="anonymous"
+                defer
+                >
+            </script><script 
+                src="https://cdn.jsdelivr.net/npm/photoswipe@4.1.3/dist/photoswipe-ui-default.min.js"integrity="sha256-UKkzOn/w1mBxRmLLGrSeyB4e1xbrp4xylgAWb3M42pU="crossorigin="anonymous"
+                defer
+                >
+            </script><link 
+                rel="stylesheet" 
+                href="https://cdn.jsdelivr.net/npm/photoswipe@4.1.3/dist/default-skin/default-skin.css"integrity="sha256-c0uckgykQ9v5k&#43;IqViZOZKc47Jn7KQil4/MP3ySA3F8="crossorigin="anonymous"
+            ><link 
+                rel="stylesheet" 
+                href="https://cdn.jsdelivr.net/npm/photoswipe@4.1.3/dist/photoswipe.css"integrity="sha256-SBLU4vv6CA6lHsZ1XyTdhyjJxCjPif/TRkjnsyGAGnE="crossorigin="anonymous"
+            >
+
+            </main>
+    <aside class="sidebar right-sidebar sticky">
+        
+            
+                
+    <section class="widget archives">
+        <div class="widget-icon">
+            <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-hash" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <path stroke="none" d="M0 0h24v24H0z"/>
+  <line x1="5" y1="9" x2="19" y2="9" />
+  <line x1="5" y1="15" x2="19" y2="15" />
+  <line x1="11" y1="4" x2="7" y2="20" />
+  <line x1="17" y1="4" x2="13" y2="20" />
+</svg>
+
+
+
+        </div>
+        <h2 class="widget-title section-title">Table of contents</h2>
+        
+        <div class="widget--toc">
+            <nav id="TableOfContents">
+  <ol>
+    <li><a href="#content">Content</a>
+      <ol>
+        <li><a href="#graph">Graph</a></li>
+        <li><a href="#common">Common</a></li>
+        <li><a href="#string">String</a></li>
+        <li><a href="#dp">DP</a></li>
+      </ol>
+    </li>
+    <li><a href="#328">3.28</a></li>
+    <li><a href="#329">3.29</a></li>
+    <li><a href="#330">3.30</a></li>
+    <li><a href="#331">3.31</a></li>
+    <li><a href="#41">4.1</a></li>
+    <li><a href="#42">4.2</a></li>
+    <li><a href="#43">4.3</a></li>
+    <li><a href="#44">4.4</a></li>
+    <li><a href="#45">4.5</a></li>
+  </ol>
+</nav>
+        </div>
+    </section>
+
+            
+        
+    </aside>
+
+
+        </div>
+        <script 
+                src="https://cdn.jsdelivr.net/npm/node-vibrant@3.1.5/dist/vibrant.min.js"integrity="sha256-5NovOZc4iwiAWTYIFiIM7DxKUXKWvpVEuMEPLzcm5/g="crossorigin="anonymous"
+                
+                >
+            </script><script type="text/javascript" src="/ts/main.js" defer></script>
+<script>
+    (function () {
+        const customFont = document.createElement('link');
+        customFont.href = "https://fonts.googleapis.com/css2?family=Lato:wght@300;400;700&display=swap";
+
+        customFont.type = "text/css";
+        customFont.rel = "stylesheet";
+
+        document.head.appendChild(customFont);
+    }());
+</script>
+
+    </body>
+</html>

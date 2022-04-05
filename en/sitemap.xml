@@ -2,6 +2,51 @@
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"
   xmlns:xhtml="http://www.w3.org/1999/xhtml">
   <url>
+    <loc>https://example.com/tags/algo/</loc>
+    <lastmod>2022-04-05T18:19:05+08:00</lastmod>
+  </url><url>
+    <loc>https://example.com/p/algo-diary/</loc>
+    <lastmod>2022-04-05T18:19:05+08:00</lastmod>
+  </url><url>
+    <loc>https://example.com/post/</loc>
+    <lastmod>2022-04-05T18:19:05+08:00</lastmod>
+  </url><url>
+    <loc>https://example.com/tags/</loc>
+    <lastmod>2022-04-05T18:19:05+08:00</lastmod>
+    <xhtml:link
+                rel="alternate"
+                hreflang="cn"
+                href="https://example.com/cn/tags/"
+                />
+    <xhtml:link
+                rel="alternate"
+                hreflang="ar"
+                href="https://example.com/ar/tags/"
+                />
+    <xhtml:link
+                rel="alternate"
+                hreflang="en"
+                href="https://example.com/tags/"
+                />
+  </url><url>
+    <loc>https://example.com/</loc>
+    <lastmod>2022-04-05T18:19:05+08:00</lastmod>
+    <xhtml:link
+                rel="alternate"
+                hreflang="cn"
+                href="https://example.com/cn/"
+                />
+    <xhtml:link
+                rel="alternate"
+                hreflang="ar"
+                href="https://example.com/ar/"
+                />
+    <xhtml:link
+                rel="alternate"
+                hreflang="en"
+                href="https://example.com/"
+                />
+  </url><url>
     <loc>https://example.com/categories/</loc>
     <lastmod>2022-03-25T22:19:50+08:00</lastmod>
     <xhtml:link
@@ -25,45 +70,6 @@
   </url><url>
     <loc>https://example.com/tags/hashing/</loc>
     <lastmod>2022-03-25T22:19:50+08:00</lastmod>
-  </url><url>
-    <loc>https://example.com/post/</loc>
-    <lastmod>2022-03-25T22:19:50+08:00</lastmod>
-  </url><url>
-    <loc>https://example.com/tags/</loc>
-    <lastmod>2022-03-25T22:19:50+08:00</lastmod>
-    <xhtml:link
-                rel="alternate"
-                hreflang="cn"
-                href="https://example.com/cn/tags/"
-                />
-    <xhtml:link
-                rel="alternate"
-                hreflang="ar"
-                href="https://example.com/ar/tags/"
-                />
-    <xhtml:link
-                rel="alternate"
-                hreflang="en"
-                href="https://example.com/tags/"
-                />
-  </url><url>
-    <loc>https://example.com/</loc>
-    <lastmod>2022-03-25T22:19:50+08:00</lastmod>
-    <xhtml:link
-                rel="alternate"
-                hreflang="cn"
-                href="https://example.com/cn/"
-                />
-    <xhtml:link
-                rel="alternate"
-                hreflang="ar"
-                href="https://example.com/ar/"
-                />
-    <xhtml:link
-                rel="alternate"
-                hreflang="en"
-                href="https://example.com/"
-                />
   </url><url>
     <loc>https://example.com/categories/%E8%AE%BA%E6%96%87/</loc>
     <lastmod>2022-03-25T22:19:50+08:00</lastmod>
