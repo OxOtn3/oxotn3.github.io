@@ -8,10 +8,10 @@
         <language>en-us</language>
         <lastBuildDate>Thu, 28 Apr 2022 16:08:25 +0800</lastBuildDate><atom:link href="https://example.com/tags/grafana/index.xml" rel="self" type="application/rss+xml" /><item>
         <title>基于OpenTSDB搭建Grafana监控实践</title>
-        <link>https://example.com/p/%E5%9F%BA%E4%BA%8Eopentsdb%E6%90%AD%E5%BB%BAgrafana%E7%9B%91%E6%8E%A7%E5%AE%9E%E8%B7%B5/</link>
+        <link>https://example.com/p/grafana/</link>
         <pubDate>Thu, 28 Apr 2022 16:08:25 +0800</pubDate>
         
-        <guid>https://example.com/p/%E5%9F%BA%E4%BA%8Eopentsdb%E6%90%AD%E5%BB%BAgrafana%E7%9B%91%E6%8E%A7%E5%AE%9E%E8%B7%B5/</guid>
+        <guid>https://example.com/p/grafana/</guid>
         <description>&lt;h2 id=&#34;whats-opentsdb&#34;&gt;What&amp;rsquo;s OpenTSDB&lt;/h2&gt;
 &lt;blockquote&gt;
 &lt;p&gt;OpenTSDB consists of a &lt;strong&gt;Time Series Daemon (TSD)&lt;/strong&gt; as well as set of command line utilities. Interaction with OpenTSDB is primarily achieved by running one or more of the TSDs. Each TSD is independent. There is no master, no shared state so you can run as many TSDs as required to handle any load you throw at it. Each TSD uses the open source database HBase or hosted Google Bigtable service to store and retrieve time-series data. The data schema is highly optimized for fast aggregations of similar time series to minimize storage space. Users of the TSD never need to access the underlying store directly. You can communicate with the TSD via a simple telnet-style protocol, an HTTP API or a simple built-in GUI. All communications happen on the same port (the TSD figures out the protocol of the client by looking at the first few bytes it receives).&lt;/p&gt;
