@@ -263,7 +263,7 @@
 
 
                 <time class="article-time--reading">
-                    2 minute read
+                    4 minute read
                 </time>
             </div>
         
@@ -691,6 +691,219 @@
 </blockquote>
 <p>二分，水一题hhh</p>
 <p>&ndash;600啦，暂时不想刷了hh&ndash;</p>
+<h2 id="48">4.8</h2>
+<blockquote>
+<p><a class="link" href="https://leetcode-cn.com/problems/longest-duplicate-substring/"  target="_blank" rel="noopener"
+    >1044. 最长重复子串</a></p>
+</blockquote>
+<p>看群主视频，学到了二分的一个小技巧：</p>
+<p><code>mid</code> 可以写成 <code>mid = left + (right - left) / 2</code> ，也可以写成<code>mid = right - (right - left) / 2</code> ，两种可以通过取0取1的边界case选择，防止死循环</p>
+<h2 id="49">4.9</h2>
+<blockquote>
+<p><a class="link" href="https://leetcode-cn.com/problems/reaching-points/"  target="_blank" rel="noopener"
+    >780. 到达终点</a></p>
+</blockquote>
+<p>能想到是逆向思维，但没想到是直接用mod</p>
+<p>用减法会超时</p>
+<p>只要知道 tx &gt; ty 时，直接 tx %= ty 就好了</p>
+<blockquote>
+<p><a class="link" href="https://leetcode-cn.com/problems/sum-of-subarray-minimums/"  target="_blank" rel="noopener"
+    >907. 子数组的最小值之和</a></p>
+</blockquote>
+<p>一开始想到很多种思路，也想到单调栈了，但没想到具体实现</p>
+<p>其实和84题很像，维护一个单调增栈，当前遍历到的元素小于栈顶元素，说明栈顶元素作为最小值的区间已经确定，累加即可，</p>
+<p>即该元素值 * 左区间长度 * 右区间长度</p>
+<h2 id="416">4.16</h2>
+<p>这一周都在忙公司的事还有学校的复习，完全没刷题，直接来双周赛了</p>
+<p>前两题很快，因为真的很简单</p>
+<p>万万没想到第三题卡住了，其实也是个很简单的题目，想复杂了</p>
+<p>因为只有5个面额，每次取款从大到小遍历一下就好了</p>
+<blockquote>
+<p><a class="link" href="https://leetcode-cn.com/problems/maximum-score-of-a-node-sequence/"  target="_blank" rel="noopener"
+    >6063. 节点序列的最大得分</a></p>
+</blockquote>
+<p>第四题确实不会，只能想到枚举点，但是由于是4个点所以需要枚举2次确定两个中心点，</p>
+<p>5e4肯定超时的</p>
+<p>赛后知道可以枚举边，中间边就能确定两个点了，</p>
+<p>之后贪心的选择一下剩下两个点即可，这里可以用heap做，</p>
+<p>整体答案也就20行左右，真的算挺简单的</p>
+<p>第四题的确有一定难度，总共A了300来人，</p>
+<p>其实前三题做的快一点，还是能拿到一个不错的名次的，</p>
+<p>但是第三题卡了很久，还是说明刷题需要坚持</p>
+<blockquote>
+<p>我也很多次都在想，我刷题到底是为了什么</p>
+<p>如果说一开始是为了面试，其实刷到这个地步，常见的题型该见也都见过了，面试前只需要反复刷两三天，把前面的捡起来就基本上没问题了</p>
+<p>但是我又看到身边非常多的大佬，要么动辄几千题，要么是竞赛选手，这的确给了我不小压力，我也想变得跟他们一样强</p>
+<p>刷到现在，如果说我还有继续刷下去的动力的话，应该是来自于后者</p>
+<p>实际上，我也的确能在刷题中收获快乐，这种快乐来自于自己觉得经过几道几十道的题目的磨练，的确掌握了某些知识，又或者是周赛里面拿到好一点的排名上分，这些都能让我感觉我的努力得到了回报</p>
+<p>那么既然如此，为什么我还会有这样的想法呢，还会犹豫今天是否要刷题，最终还是以各种借口搪塞掉</p>
+<p>哎，我也不知道</p>
+<p>但最起码，AC之后的喜悦是真实的</p>
+</blockquote>
+<h2 id="417">4.17</h2>
+<p>周赛打完</p>
+<p>补充了todo</p>
+<h2 id="423">4.23</h2>
+<p>晚上做了字节的模拟笔试，前三题都挺简单的，也记不得了，没啥好说的，</p>
+<p>第四题暴力过了80，不太想继续看了，出来了知道是树状数组板子题，记录一下</p>
+<p>大概题意：</p>
+<p>给两个长度都为 N 的数组 height 和 value ，分别表示每个人的高度和每个人的价值（身高都不一样</p>
+<p>求身高递增序列的最大价值</p>
+<p>问了rb，由于需要维护区间最值和单点修改，所以想到树状数组，</p>
+<p>写一下代码：</p>
+<p>（先记个TODO</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt">1
+</span><span class="lnt">2
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-python" data-lang="python"><span class="k">def</span> <span class="nf">solve</span><span class="p">(</span><span class="n">N</span><span class="p">,</span> <span class="n">height</span><span class="p">,</span> <span class="n">value</span><span class="p">):</span>
+  	
+</code></pre></td></tr></table>
+</div>
+</div><blockquote>
+<p><a class="link" href="https://leetcode-cn.com/problems/maximum-running-time-of-n-computers/"  target="_blank" rel="noopener"
+    >2141. 同时运行 N 台电脑的最长时间</a></p>
+</blockquote>
+<p>没思路，由于看到tag是二分，卡在如何根据电池情况计算最长时间</p>
+<p>其实有一个点是，如果时间是t，那么对于使用时间大于等于t的电池，只能给一个电脑用，因为t之后就结束了，</p>
+<p>想到这一点就离结论更近了：</p>
+<p>对于每一个电池，能提供的价值为min(电池容量，给定t)，</p>
+<p>check函数就很好写了</p>
+<h2 id="424">4.24</h2>
+<p>lc 93 改编，非数字可以当作任意数字使用，比如 10a1a02b3 可以是101.110.233</p>
+<p>当时思路是想让字母尽可能小（0），特殊情况是前导位就取1</p>
+<p>记个TODO</p>
+<h2 id="429">4.29</h2>
+<blockquote>
+<p><a class="link" href="https://leetcode-cn.com/problems/the-number-of-weak-characters-in-the-game/"  target="_blank" rel="noopener"
+    >1996. 游戏中弱角色的数量</a></p>
+</blockquote>
+<p>两个维度，一开始想的攻击升序防御降序然后遍历，但是这样会出现重复计算</p>
+<p>所以对攻击降序，防御升序，再维护一个之前防御的最大值，如果当前防御小于该值，则说明为弱角色（贪心</p>
+<h2 id="430">4.30</h2>
+<blockquote>
+<p>五一假期算开始了，这几天也有点时间刷题，不过应该不像清明那会从早刷到晚，大概率还是像以前那样上午+下午，感觉不错的话准备秋招期间也就还按着这个节奏和强度来</p>
+</blockquote>
+<blockquote>
+<p><a class="link" href="https://leetcode-cn.com/problems/longest-increasing-subsequence/"  target="_blank" rel="noopener"
+    >300. 最长递增子序列</a></p>
+</blockquote>
+<blockquote>
+<p><a class="link" href="https://leetcode-cn.com/problems/russian-doll-envelopes/"  target="_blank" rel="noopener"
+    >354. 俄罗斯套娃信封问题</a></p>
+</blockquote>
+<p>LIS问题，学习了nlogn的做法，核心思路是dp+二分，</p>
+<p>dp定义和n^2的定义不同，dp[i]是长度为i+1的子序列的尾部的值，</p>
+<p>因为这样才是有序的可以二分，</p>
+<p>需要注意left=res的时候才更新res</p>
+<p>354先根据一个升序再另一个降序就好了，之后对降序的维度计算LIS，</p>
+<p>降序是为了同一维度满足严格大于</p>
+<p>先刷一部分rollinghash + binarysearch tag的</p>
+<blockquote>
+<p><a class="link" href="https://leetcode-cn.com/problems/find-substring-with-given-hash-value/"  target="_blank" rel="noopener"
+    >2156. 查找给定哈希值的子串</a></p>
+</blockquote>
+<p>算是rollinghash入门题了，但是不知道为什么一直超时</p>
+<p>换成群主的写法，倒着+每一步都取mod过了</p>
+<h2 id="51">5.1</h2>
+<blockquote>
+<p><a class="link" href="https://leetcode-cn.com/problems/count-unguarded-cells-in-the-grid/"  target="_blank" rel="noopener"
+    >6053. 统计网格图中没有被保卫的格子数</a></p>
+</blockquote>
+<p>比赛时候一直没有特别好的思路，</p>
+<p>实际上就是个模拟题，根据guard四个方向，碰到下一个guard break掉优化就好了，这样能保证是O(mn)的复杂度</p>
+<p>惨痛的教训</p>
+<p>该暴力就暴力</p>
+<p>像200这种数据量</p>
+<p>暴力就完事了</p>
+<blockquote>
+<p><a class="link" href="https://leetcode-cn.com/problems/escape-the-spreading-fire/"  target="_blank" rel="noopener"
+    >2258. 逃离火灾</a></p>
+</blockquote>
+<p>又是个比赛没思路的题</p>
+<p>其实如果能想到二分时间就简单很多，</p>
+<p>以火为起点多元bfs，维护每个点被烧到的最短时间，</p>
+<p>check就行，注意check的时候维护visited，不然会超时</p>
+<blockquote>
+<p><a class="link" href="https://leetcode-cn.com/problems/all-elements-in-two-binary-search-trees/"  target="_blank" rel="noopener"
+    >1305. 两棵二叉搜索树中的所有元素</a></p>
+</blockquote>
+<p>还原数组+双指针就好了</p>
+<h2 id="52">5.2</h2>
+<blockquote>
+<p><a class="link" href="https://leetcode-cn.com/problems/longest-duplicate-substring/"  target="_blank" rel="noopener"
+    >1044. 最长重复子串</a></p>
+</blockquote>
+<p>之前做过但是没a的题，再做一次，</p>
+<p>由于测试数据比较妖，所以check两次，并且MOD和POWER随机生成，</p>
+<p>MOD是[1e9+7, 1 &laquo; 32]，POWER是[26, 30]</p>
+<p>即使这样还是有概率冲突，交了3次才过</p>
+<h2 id="53">5.3</h2>
+<blockquote>
+<p><a class="link" href="https://leetcode-cn.com/problems/longest-univalue-path/"  target="_blank" rel="noopener"
+    >687. 最长同值路径</a></p>
+</blockquote>
+<p>后序+左右相等时更新两侧但只返回大的一侧即可</p>
+<blockquote>
+<p><a class="link" href="https://leetcode-cn.com/problems/sell-diminishing-valued-colored-balls/"  target="_blank" rel="noopener"
+    >1648. 销售价值减少的颜色球</a></p>
+</blockquote>
+<p>题目意思很简单，也很容易想到二分，但是不容易写好</p>
+<p>tricky的点在于无法整除的情况下，是否要多拿一个补齐</p>
+<p>提交了挺多次都没过，也第一次让我认识到做一题不一定要一次过，</p>
+<p>后面找时间重写一下吧</p>
+<p>记个TODO</p>
+<h2 id="54">5.4</h2>
+<blockquote>
+<p><a class="link" href="https://leetcode-cn.com/problems/find-the-winner-of-the-circular-game/"  target="_blank" rel="noopener"
+    >1823. 找出游戏的获胜者</a></p>
+</blockquote>
+<p>队列模拟/数学（约瑟夫环）</p>
+<blockquote>
+<p><a class="link" href="https://leetcode-cn.com/problems/count-nodes-with-the-highest-score/"  target="_blank" rel="noopener"
+    >2049. 统计最高分的节点数目</a></p>
+</blockquote>
+<p>之前做过的又不会了hhh</p>
+<p>想到一点，父节点方向的节点数可以通过总节点数 - 左 - 右 - 当前节点数算出来就很简单了，</p>
+<p>再注意下最小分数为1即可</p>
+<blockquote>
+<p><a class="link" href="https://leetcode-cn.com/problems/ugly-number-iii/"  target="_blank" rel="noopener"
+    >1201. 丑数 III</a></p>
+</blockquote>
+<p>暴力超时，想到二分，思路是对的，但是不知道容斥原理</p>
+<p>知道了就很简单了，记录一下（以及求gcd和lcm）：</p>
+<div class="highlight"><div class="chroma">
+<table class="lntable"><tr><td class="lntd">
+<pre tabindex="0" class="chroma"><code><span class="lnt"> 1
+</span><span class="lnt"> 2
+</span><span class="lnt"> 3
+</span><span class="lnt"> 4
+</span><span class="lnt"> 5
+</span><span class="lnt"> 6
+</span><span class="lnt"> 7
+</span><span class="lnt"> 8
+</span><span class="lnt"> 9
+</span><span class="lnt">10
+</span></code></pre></td>
+<td class="lntd">
+<pre tabindex="0" class="chroma"><code class="language-python" data-lang="python"><span class="k">def</span> <span class="nf">gcd</span><span class="p">(</span><span class="n">a</span><span class="p">,</span> <span class="n">b</span><span class="p">):</span>
+  <span class="c1"># 记住小的在后面就行了</span>
+	<span class="k">if</span> <span class="n">b</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span> <span class="k">return</span> <span class="n">a</span>
+  <span class="k">return</span> <span class="n">gcd</span><span class="p">(</span><span class="n">b</span><span class="p">,</span> <span class="n">a</span> <span class="o">%</span> <span class="n">b</span><span class="p">)</span>
+<span class="k">def</span> <span class="nf">lcm</span><span class="p">(</span><span class="n">a</span><span class="p">,</span> <span class="n">b</span><span class="p">):</span>
+  <span class="k">return</span> <span class="n">a</span> <span class="o">*</span> <span class="n">b</span> <span class="o">//</span> <span class="n">gcd</span><span class="p">(</span><span class="n">a</span><span class="p">,</span> <span class="n">b</span><span class="p">)</span>
+  
+<span class="c1"># 容斥原理	</span>
+<span class="c1"># [1, n] 中能被 a, b, c整除的数个数</span>
+	<span class="n">total</span> <span class="o">=</span> <span class="n">n</span> <span class="o">//</span> <span class="n">a</span> <span class="o">+</span> <span class="n">n</span> <span class="o">//</span> <span class="n">b</span> <span class="o">+</span> <span class="n">n</span> <span class="o">//</span> <span class="n">c</span> <span class="o">-</span> <span class="n">n</span> <span class="o">//</span> <span class="n">lcm</span><span class="p">(</span><span class="n">a</span><span class="p">,</span> <span class="n">b</span><span class="p">)</span> <span class="o">-</span> <span class="n">n</span> <span class="o">//</span> <span class="n">lcm</span><span class="p">(</span><span class="n">a</span><span class="p">,</span> <span class="n">c</span><span class="p">)</span> <span class="o">-</span> <span class="n">n</span> <span class="o">//</span> <span class="n">lcm</span><span class="p">(</span><span class="n">b</span><span class="p">,</span> <span class="n">c</span><span class="p">)</span> <span class="o">+</span> <span class="n">n</span> <span class="o">//</span> <span class="n">lcm</span><span class="p">(</span><span class="n">a</span><span class="p">,</span> <span class="n">b</span><span class="p">,</span> <span class="n">c</span><span class="p">)</span>
+</code></pre></td></tr></table>
+</div>
+</div><blockquote>
+<p>650了，也就是一个月大概只做了50题，相较于之前100题/月下降了一半，但是我感觉这样慢下来每一题多想想，是在付出的时间以及回报中得到一个比较好的平衡。高题量可能并不意味着高收获，质量是很重要的，其实任何事都是这个道理。</p>
+<p>最近各方面的节奏慢慢找回来了，希望自己能保持下去。</p>
+</blockquote>
 
 </section>
 
@@ -930,6 +1143,18 @@
     <li><a href="#43">4.3</a></li>
     <li><a href="#44">4.4</a></li>
     <li><a href="#45">4.5</a></li>
+    <li><a href="#48">4.8</a></li>
+    <li><a href="#49">4.9</a></li>
+    <li><a href="#416">4.16</a></li>
+    <li><a href="#417">4.17</a></li>
+    <li><a href="#423">4.23</a></li>
+    <li><a href="#424">4.24</a></li>
+    <li><a href="#429">4.29</a></li>
+    <li><a href="#430">4.30</a></li>
+    <li><a href="#51">5.1</a></li>
+    <li><a href="#52">5.2</a></li>
+    <li><a href="#53">5.3</a></li>
+    <li><a href="#54">5.4</a></li>
   </ol>
 </nav>
         </div>
